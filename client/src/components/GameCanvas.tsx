@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useRace } from "@/lib/stores/useRace";
+import { useMultiplayer } from "@/lib/stores/useMultiplayer";
 import type { Racer, PowerUp, Obstacle } from "@/lib/stores/useRace";
 
 interface Keys {
@@ -32,6 +33,14 @@ export function GameCanvas() {
     dropCondom,
     finishRace,
   } = useRace();
+  
+  const {
+    isMultiplayer,
+    players: multiplayerPlayers,
+    localPlayerId,
+    updatePosition,
+    playerFinished,
+  } = useMultiplayer();
   
   const keysRef = useRef<Keys>({
     w: false,
@@ -131,6 +140,22 @@ export function GameCanvas() {
             tailPhase: newTailPhase,
           });
           
+          // Send position update to server if in multiplayer mode
+          if (isMultiplayer) {
+            updatePosition({
+              x: newX,
+              y: newY,
+              velocityX: newVelX,
+              velocityY: newVelY,
+              tailPhase: newTailPhase,
+              speedMultiplier: player.speedMultiplier,
+              slowdownTimer: player.slowdownTimer,
+              slipstreamTimer: player.slipstreamTimer,
+              activePowerUpType: player.activePowerUpType,
+              powerUpTimer: player.powerUpTimer,
+            });
+          }
+          
           // Update camera to follow player (player stays at bottom 1/4 of screen)
           const targetCameraY = newY - canvas.height * 0.75;
           state.updateCamera(Math.max(0, targetCameraY));
@@ -138,52 +163,57 @@ export function GameCanvas() {
           // Check if player finished
           if (newY >= trackHeight - 200) {
             state.finishRace();
+            if (isMultiplayer) {
+              playerFinished();
+            }
           }
         }
         
-        // Update AI racers
-        racers.forEach((racer) => {
-          if (racer.isPlayer) return;
-          
-          const aiSpeed = racer.name === "Speedy" ? 4.2 : 4.5;
-          const adjustedSpeed = aiSpeed * racer.speedMultiplier;
-          
-          // AI tries to avoid obstacles and collect power-ups
-          let targetX = racer.x;
-          const nearbyPowerUp = powerUps.find(
-            (p) => p.active && Math.abs(p.y - racer.y) < 200 && Math.abs(p.x - racer.x) < 150
-          );
-          
-          if (nearbyPowerUp) {
-            targetX = nearbyPowerUp.x;
-          }
-          
-          const nearbyObstacle = obstacles.find(
-            (o) => o.active && Math.abs(o.y - racer.y) < 150 && Math.abs(o.x - racer.x) < 100
-          );
-          
-          if (nearbyObstacle) {
-            targetX = racer.x + (racer.x > nearbyObstacle.x ? 50 : -50);
-          }
-          
-          const dx = targetX - racer.x;
-          const moveX = Math.sign(dx) * Math.min(Math.abs(dx), 3);
-          
-          const newX = Math.max(50, Math.min(canvas.width - 50, racer.x + moveX));
-          const newY = racer.y + adjustedSpeed;
-          const newTailPhase = (racer.tailPhase + 0.1) % (Math.PI * 2);
-          
-          state.updateRacer(racer.id, {
-            x: newX,
-            y: newY,
-            tailPhase: newTailPhase,
+        // Update AI racers (only in single-player mode)
+        if (!isMultiplayer) {
+          racers.forEach((racer) => {
+            if (racer.isPlayer) return;
+            
+            const aiSpeed = racer.name === "Speedy" ? 4.2 : 4.5;
+            const adjustedSpeed = aiSpeed * racer.speedMultiplier;
+            
+            // AI tries to avoid obstacles and collect power-ups
+            let targetX = racer.x;
+            const nearbyPowerUp = powerUps.find(
+              (p) => p.active && Math.abs(p.y - racer.y) < 200 && Math.abs(p.x - racer.x) < 150
+            );
+            
+            if (nearbyPowerUp) {
+              targetX = nearbyPowerUp.x;
+            }
+            
+            const nearbyObstacle = obstacles.find(
+              (o) => o.active && Math.abs(o.y - racer.y) < 150 && Math.abs(o.x - racer.x) < 100
+            );
+            
+            if (nearbyObstacle) {
+              targetX = racer.x + (racer.x > nearbyObstacle.x ? 50 : -50);
+            }
+            
+            const dx = targetX - racer.x;
+            const moveX = Math.sign(dx) * Math.min(Math.abs(dx), 3);
+            
+            const newX = Math.max(50, Math.min(canvas.width - 50, racer.x + moveX));
+            const newY = racer.y + adjustedSpeed;
+            const newTailPhase = (racer.tailPhase + 0.1) % (Math.PI * 2);
+            
+            state.updateRacer(racer.id, {
+              x: newX,
+              y: newY,
+              tailPhase: newTailPhase,
+            });
+            
+            // Check if AI finished
+            if (newY >= trackHeight - 200) {
+              state.finishRace();
+            }
           });
-          
-          // Check if AI finished
-          if (newY >= trackHeight - 200) {
-            state.finishRace();
-          }
-        });
+        }
         
         // Check collisions
         state.checkCollisions();
@@ -232,10 +262,20 @@ export function GameCanvas() {
       });
       
       // Render racers
-      racers.forEach((racer) => {
-        const screenY = canvas.height - (racer.y - cameraY);
-        drawSperm(ctx, racer, racer.x, screenY);
-      });
+      if (isMultiplayer) {
+        // Render multiplayer players
+        const multiplayerState = useMultiplayer.getState();
+        Array.from(multiplayerState.players.values()).forEach((player) => {
+          const screenY = canvas.height - (player.y - cameraY);
+          drawMultiplayerSperm(ctx, player, player.x, screenY);
+        });
+      } else {
+        // Render single-player racers
+        racers.forEach((racer) => {
+          const screenY = canvas.height - (racer.y - cameraY);
+          drawSperm(ctx, racer, racer.x, screenY);
+        });
+      }
       
       // Finish line
       const finishScreenY = canvas.height - (trackHeight - 200 - cameraY);
@@ -287,6 +327,41 @@ function drawSperm(ctx: CanvasRenderingContext2D, racer: Racer, x: number, y: nu
   ctx.strokeStyle = racer.color + "88";
   ctx.lineWidth = 6;
   ctx.stroke();
+  
+  ctx.restore();
+}
+
+function drawMultiplayerSperm(ctx: CanvasRenderingContext2D, player: any, x: number, y: number) {
+  ctx.save();
+  ctx.translate(x, y);
+  
+  // Tail (wavy)
+  ctx.strokeStyle = player.color;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  for (let i = 0; i < 50; i += 5) {
+    const waveX = Math.sin(player.tailPhase + i * 0.2) * 8;
+    ctx.lineTo(waveX, -i);
+  }
+  ctx.stroke();
+  
+  // Head (ellipse)
+  ctx.fillStyle = player.color;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 15, 20, 0, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Glow effect
+  ctx.strokeStyle = player.color + "88";
+  ctx.lineWidth = 6;
+  ctx.stroke();
+  
+  // Player nickname label
+  ctx.fillStyle = "#333";
+  ctx.font = "bold 12px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText(player.nickname, 0, -35);
   
   ctx.restore();
 }

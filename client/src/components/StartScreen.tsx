@@ -1,7 +1,18 @@
 import { useRace } from "@/lib/stores/useRace";
+import { useMultiplayer } from "@/lib/stores/useMultiplayer";
 
 export function StartScreen() {
   const { startRace } = useRace();
+  const { setMultiplayer } = useMultiplayer();
+  
+  const handleSinglePlayer = () => {
+    setMultiplayer(false);
+    startRace();
+  };
+  
+  const handleMultiplayer = () => {
+    setMultiplayer(true);
+  };
   
   return (
     <div
@@ -30,13 +41,12 @@ export function StartScreen() {
         
         <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-md mx-auto mb-8">
           <h2 className="text-xl font-bold mb-4" style={{ color: "#9B59B6" }}>
-            🏁 Race Started! Swim to the egg! 🏁
+            🏁 Choose Your Mode! 🏁
           </h2>
           
           <div className="text-left space-y-2 mb-4">
             <p><strong>Controls:</strong> WASD or Arrow Keys</p>
             <p><strong>Goal:</strong> Reach the egg at the top!</p>
-            <p><strong>Compete:</strong> Against Speedy & Turbo</p>
           </div>
           
           <div className="text-left space-y-1 text-sm mb-4">
@@ -52,12 +62,21 @@ export function StartScreen() {
           </div>
         </div>
         
-        <button
-          onClick={startRace}
-          className="bg-gradient-to-r from-pink-500 to-purple-500 text-white px-12 py-4 rounded-full text-2xl font-bold shadow-lg hover:scale-110 transition-transform"
-        >
-          🏁 START RACE 🏁
-        </button>
+        <div className="flex flex-col gap-4 max-w-md mx-auto">
+          <button
+            onClick={handleSinglePlayer}
+            className="bg-gradient-to-r from-pink-500 to-purple-500 text-white px-12 py-4 rounded-full text-2xl font-bold shadow-lg hover:scale-110 transition-transform"
+          >
+            🎮 Single Player
+          </button>
+          
+          <button
+            onClick={handleMultiplayer}
+            className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-12 py-4 rounded-full text-2xl font-bold shadow-lg hover:scale-110 transition-transform"
+          >
+            👥 Multiplayer (Up to 3 Players)
+          </button>
+        </div>
       </div>
     </div>
   );
