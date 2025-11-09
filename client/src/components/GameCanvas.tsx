@@ -108,9 +108,23 @@ export function GameCanvas() {
       
       // Get current state from store
       const state = useRace.getState();
-      const { phase, racers, powerUps, obstacles, droppedCondoms, cameraY, trackHeight } = state;
+      const { phase, racers, powerUps, obstacles, droppedCondoms, trackHeight } = state;
+      
+      // Use mutable local camera variable for this frame's rendering
+      let currentCameraY = state.cameraY;
+      
+      // Initialize camera position when player is at starting position (works for all phases)
+      if (currentCameraY === 0 && racers.some(r => r.y === 100)) {
+        const player = racers.find((r) => r.isPlayer);
+        if (player) {
+          // Don't clamp initially - allow negative values to position player correctly
+          const minCameraY = -canvas.height * 0.5;
+          currentCameraY = Math.max(minCameraY, player.y - canvas.height * 0.55);
+        }
+      }
       
       if (phase === "racing") {
+        
         // Update timers
         state.updateTimers(delta);
         
@@ -156,9 +170,11 @@ export function GameCanvas() {
             });
           }
           
-          // Update camera to follow player (player stays at bottom 1/4 of screen)
-          const targetCameraY = newY - canvas.height * 0.75;
-          state.updateCamera(Math.max(0, targetCameraY));
+          // Update camera to follow player (player stays in lower portion with full body visible)
+          const targetCameraY = newY - canvas.height * 0.55;
+          // Allow negative camera values at start to position player in lower portion correctly
+          const minCameraY = -canvas.height * 0.5;  // Allow camera to go up to half screen height below zero
+          currentCameraY = Math.max(minCameraY, targetCameraY);
           
           // Check if player finished
           if (newY >= trackHeight - 200) {
@@ -222,6 +238,9 @@ export function GameCanvas() {
         state.checkSlipstreams();
       }
       
+      // Sync camera back to store (after all updates, for all phases)
+      state.updateCamera(currentCameraY);
+      
       // Render
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
@@ -236,7 +255,7 @@ export function GameCanvas() {
       ctx.fillStyle = "#333";
       ctx.font = "bold 18px 'Comic Sans MS', cursive";
       for (let i = 0; i < trackHeight; i += 200) {
-        const screenY = canvas.height - (i - cameraY);
+        const screenY = canvas.height - (i - currentCameraY);
         if (screenY > 0 && screenY < canvas.height) {
           ctx.fillText(`${i}m`, canvas.width - 60, screenY);
         }
@@ -245,7 +264,7 @@ export function GameCanvas() {
       // Render power-ups
       powerUps.forEach((powerUp) => {
         if (!powerUp.active) return;
-        const screenY = canvas.height - (powerUp.y - cameraY);
+        const screenY = canvas.height - (powerUp.y - currentCameraY);
         if (screenY < -50 || screenY > canvas.height + 50) return;
         
         drawPowerUp(ctx, powerUp, powerUp.x, screenY);
@@ -255,7 +274,7 @@ export function GameCanvas() {
       const allObstacles = [...obstacles, ...droppedCondoms];
       allObstacles.forEach((obstacle) => {
         if (!obstacle.active) return;
-        const screenY = canvas.height - (obstacle.y - cameraY);
+        const screenY = canvas.height - (obstacle.y - currentCameraY);
         if (screenY < -50 || screenY > canvas.height + 50) return;
         
         drawObstacle(ctx, obstacle, obstacle.x, screenY);
@@ -266,19 +285,19 @@ export function GameCanvas() {
         // Render multiplayer players
         const multiplayerState = useMultiplayer.getState();
         Array.from(multiplayerState.players.values()).forEach((player) => {
-          const screenY = canvas.height - (player.y - cameraY);
+          const screenY = canvas.height - (player.y - currentCameraY);
           drawMultiplayerSperm(ctx, player, player.x, screenY);
         });
       } else {
         // Render single-player racers
         racers.forEach((racer) => {
-          const screenY = canvas.height - (racer.y - cameraY);
+          const screenY = canvas.height - (racer.y - currentCameraY);
           drawSperm(ctx, racer, racer.x, screenY);
         });
       }
       
       // Finish line
-      const finishScreenY = canvas.height - (trackHeight - 200 - cameraY);
+      const finishScreenY = canvas.height - (trackHeight - 200 - currentCameraY);
       if (finishScreenY > -100 && finishScreenY < canvas.height + 100) {
         ctx.fillStyle = "#FF6B9D";
         ctx.font = "bold 40px 'Comic Sans MS', cursive";
