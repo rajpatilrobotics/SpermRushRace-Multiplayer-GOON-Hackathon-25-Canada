@@ -306,26 +306,65 @@ function drawSperm(ctx: CanvasRenderingContext2D, racer: Racer, x: number, y: nu
   ctx.save();
   ctx.translate(x, y);
   
-  // Tail (wavy)
-  ctx.strokeStyle = racer.color;
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.moveTo(0, 0);
-  for (let i = 0; i < 50; i += 5) {
-    const waveX = Math.sin(racer.tailPhase + i * 0.2) * 8;
-    ctx.lineTo(waveX, -i);
-  }
-  ctx.stroke();
+  // Tail (wavy, flowing behind) - drawn first so head overlaps it
+  const tailLength = 60;
+  const tailSegments = 20;
   
-  // Head (ellipse)
+  for (let i = 0; i < tailSegments; i++) {
+    const progress = i / tailSegments;
+    const yPos = progress * tailLength;
+    const nextProgress = (i + 1) / tailSegments;
+    const nextYPos = nextProgress * tailLength;
+    
+    // Wavy motion
+    const waveX = Math.sin(racer.tailPhase + progress * Math.PI * 2) * 6 * (1 - progress);
+    const nextWaveX = Math.sin(racer.tailPhase + nextProgress * Math.PI * 2) * 6 * (1 - nextProgress);
+    
+    // Tapering width
+    const width = 3 * (1 - progress * 0.8);
+    
+    // Gradient for tail
+    const gradient = ctx.createLinearGradient(0, yPos, 0, nextYPos);
+    gradient.addColorStop(0, racer.color);
+    gradient.addColorStop(1, racer.color + "AA");
+    
+    ctx.strokeStyle = gradient;
+    ctx.lineWidth = width;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(waveX, yPos);
+    ctx.lineTo(nextWaveX, nextYPos);
+    ctx.stroke();
+  }
+  
+  // Head - teardrop/tadpole shape pointing upward
   ctx.fillStyle = racer.color;
   ctx.beginPath();
-  ctx.ellipse(0, 0, 15, 20, 0, 0, Math.PI * 2);
+  
+  // Create teardrop shape
+  ctx.moveTo(0, -18); // Pointed tip at top
+  ctx.quadraticCurveTo(8, -10, 10, 0); // Right curve
+  ctx.quadraticCurveTo(8, 8, 0, 10); // Bottom right
+  ctx.quadraticCurveTo(-8, 8, -10, 0); // Bottom left
+  ctx.quadraticCurveTo(-8, -10, 0, -18); // Left curve back to top
+  ctx.closePath();
   ctx.fill();
   
-  // Glow effect
-  ctx.strokeStyle = racer.color + "88";
-  ctx.lineWidth = 6;
+  // Add gradient overlay for depth
+  const headGradient = ctx.createRadialGradient(-3, -8, 0, 0, 0, 15);
+  headGradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
+  headGradient.addColorStop(1, 'rgba(0, 0, 0, 0.1)');
+  ctx.fillStyle = headGradient;
+  ctx.fill();
+  
+  // Glow effect around head
+  ctx.strokeStyle = racer.color + "66";
+  ctx.lineWidth = 4;
+  ctx.stroke();
+  
+  // Outer glow
+  ctx.strokeStyle = racer.color + "33";
+  ctx.lineWidth = 7;
   ctx.stroke();
   
   ctx.restore();
@@ -335,33 +374,75 @@ function drawMultiplayerSperm(ctx: CanvasRenderingContext2D, player: any, x: num
   ctx.save();
   ctx.translate(x, y);
   
-  // Tail (wavy)
-  ctx.strokeStyle = player.color;
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.moveTo(0, 0);
-  for (let i = 0; i < 50; i += 5) {
-    const waveX = Math.sin(player.tailPhase + i * 0.2) * 8;
-    ctx.lineTo(waveX, -i);
-  }
-  ctx.stroke();
+  // Tail (wavy, flowing behind) - drawn first so head overlaps it
+  const tailLength = 60;
+  const tailSegments = 20;
   
-  // Head (ellipse)
+  for (let i = 0; i < tailSegments; i++) {
+    const progress = i / tailSegments;
+    const yPos = progress * tailLength;
+    const nextProgress = (i + 1) / tailSegments;
+    const nextYPos = nextProgress * tailLength;
+    
+    // Wavy motion
+    const waveX = Math.sin(player.tailPhase + progress * Math.PI * 2) * 6 * (1 - progress);
+    const nextWaveX = Math.sin(player.tailPhase + nextProgress * Math.PI * 2) * 6 * (1 - nextProgress);
+    
+    // Tapering width
+    const width = 3 * (1 - progress * 0.8);
+    
+    // Gradient for tail
+    const gradient = ctx.createLinearGradient(0, yPos, 0, nextYPos);
+    gradient.addColorStop(0, player.color);
+    gradient.addColorStop(1, player.color + "AA");
+    
+    ctx.strokeStyle = gradient;
+    ctx.lineWidth = width;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(waveX, yPos);
+    ctx.lineTo(nextWaveX, nextYPos);
+    ctx.stroke();
+  }
+  
+  // Head - teardrop/tadpole shape pointing upward
   ctx.fillStyle = player.color;
   ctx.beginPath();
-  ctx.ellipse(0, 0, 15, 20, 0, 0, Math.PI * 2);
+  
+  // Create teardrop shape
+  ctx.moveTo(0, -18); // Pointed tip at top
+  ctx.quadraticCurveTo(8, -10, 10, 0); // Right curve
+  ctx.quadraticCurveTo(8, 8, 0, 10); // Bottom right
+  ctx.quadraticCurveTo(-8, 8, -10, 0); // Bottom left
+  ctx.quadraticCurveTo(-8, -10, 0, -18); // Left curve back to top
+  ctx.closePath();
   ctx.fill();
   
-  // Glow effect
-  ctx.strokeStyle = player.color + "88";
-  ctx.lineWidth = 6;
+  // Add gradient overlay for depth
+  const headGradient = ctx.createRadialGradient(-3, -8, 0, 0, 0, 15);
+  headGradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
+  headGradient.addColorStop(1, 'rgba(0, 0, 0, 0.1)');
+  ctx.fillStyle = headGradient;
+  ctx.fill();
+  
+  // Glow effect around head
+  ctx.strokeStyle = player.color + "66";
+  ctx.lineWidth = 4;
+  ctx.stroke();
+  
+  // Outer glow
+  ctx.strokeStyle = player.color + "33";
+  ctx.lineWidth = 7;
   ctx.stroke();
   
   // Player nickname label
-  ctx.fillStyle = "#333";
+  ctx.fillStyle = "#FFF";
+  ctx.strokeStyle = "#000";
+  ctx.lineWidth = 3;
   ctx.font = "bold 12px Arial";
   ctx.textAlign = "center";
-  ctx.fillText(player.nickname, 0, -35);
+  ctx.strokeText(player.nickname, 0, -30);
+  ctx.fillText(player.nickname, 0, -30);
   
   ctx.restore();
 }
