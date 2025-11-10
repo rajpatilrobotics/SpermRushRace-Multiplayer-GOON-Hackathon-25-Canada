@@ -104,8 +104,9 @@ The game features:
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/yourusername/gene-pool-royale.git
-cd gene-pool-royale
+
+git clone https://github.com/rajpatilrobotics/SpermRushRace-Multiplayer.git
+
 ```
 
 2. **Install dependencies**
