@@ -1,0 +1,134 @@
+[33mcommit 4cca5254993e8310c9be17a48d6f6aedc149e198[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m
+Author: Raj Patil <121811421+rajpatilrobotics@users.noreply.github.com>
+Date:   Mon Nov 10 13:21:46 2025 +0000
+
+    Assistant checkpoint: Remove remaining Replit references from README
+    
+    Assistant generated file changes:
+    - README.md: Remove Replit from acknowledgments section
+    
+    ---
+    
+    User prompt:
+    git add .
+git commit -m "Your commit message here"
+    also in the readme file is there any other mention of replit therer?
+    
+    Replit-Commit-Author: Assistant
+    Replit-Commit-Session-Id: bff0658e-e2f3-478e-80b4-41bd61e4c85c
+    Replit-Commit-Event-Id: 6488e516-6bce-4236-97fd-217e4b1af6c3
+
+[33mcommit 0337911d55bbb5d32e1990dfecb57a0858ae362c[m
+Author: Raj Patil <121811421+rajpatilrobotics@users.noreply.github.com>
+Date:   Mon Nov 10 13:20:57 2025 +0000
+
+    Assistant checkpoint: Update README with Render deployment info
+    
+    Assistant generated file changes:
+    - README.md: Update deployment section to reference Render, Add Render-specific deployment guide, Update demo section with Render deployment
+    
+    ---
+    
+    User prompt:
+    
+    hey i've deployed that into render me , in the read me file u've mentioned that deployment is on the replit,
+    
+    Replit-Commit-Author: Assistant
+    Replit-Commit-Session-Id: bff0658e-e2f3-478e-80b4-41bd61e4c85c
+    Replit-Commit-Event-Id: 5e0e3249-6cae-4fbc-a869-3ae5caf0d0b0
+
+[33mcommit f037e0b5fd1999fcc8bb88ffd3d118395b671792[m[33m ([m[1;31mgitsafe-backup/main[m[33m)[m
+Author: rajacc9outlook <49600134-rajacc9outlook@users.noreply.replit.com>
+Date:   Mon Nov 10 13:15:07 2025 +0000
+
+    Update README with game details and demo instructions
+    
+    Update README.md with a live demo link, game preview details, and instructions for taking screenshots.
+    
+    Replit-Commit-Author: Agent
+    Replit-Commit-Session-Id: d591fb7a-465e-444a-9c64-43cf4c1f10f9
+    Replit-Commit-Checkpoint-Type: full_checkpoint
+    Replit-Commit-Event-Id: 4ef92a46-fd3d-464c-b650-01e74bcb06e0
+    Replit-Commit-Screenshot-Url: https://storage.googleapis.com/screenshot-production-us-central1/d9a4d6c1-9eda-494e-80a1-cee73c5b9046/d591fb7a-465e-444a-9c64-43cf4c1f10f9/JenUaQM
+
+[33mcommit 1c2b33391884bff7bae55351a984fdad63345c0c[m
+Author: rajacc9outlook <49600134-rajacc9outlook@users.noreply.replit.com>
+Date:   Mon Nov 10 13:13:22 2025 +0000
+
+    Add comprehensive README file for Gene Pool Royale project
+    
+    Create a detailed README.md for the Gene Pool Royale project, including game description, features, demo, tech stack, and quick start instructions.
+    
+    Replit-Commit-Author: Agent
+    Replit-Commit-Session-Id: d591fb7a-465e-444a-9c64-43cf4c1f10f9
+    Replit-Commit-Checkpoint-Type: intermediate_checkpoint
+    Replit-Commit-Event-Id: 097f763b-044f-49fe-a11f-975cdd35b171
+    Replit-Commit-Screenshot-Url: https://storage.googleapis.com/screenshot-production-us-central1/d9a4d6c1-9eda-494e-80a1-cee73c5b9046/d591fb7a-465e-444a-9c64-43cf4c1f10f9/JenUaQM
+
+[33mcommit f5751aa3935b91e971f6021803a2e04667a86058[m
+Author: rajacc9outlook <49600134-rajacc9outlook@users.noreply.replit.com>
+Date:   Mon Nov 10 13:11:54 2025 +0000
+
+    Transitioned from Plan to Build mode
+    
+    Replit-Commit-Author: Agent
+    Replit-Commit-Session-Id: d591fb7a-465e-444a-9c64-43cf4c1f10f9
+    Replit-Commit-Checkpoint-Type: full_checkpoint
+    Replit-Commit-Event-Id: 3d20807c-7443-4eec-a0cf-8d7d4aff631f
+    Replit-Commit-Screenshot-Url: https://storage.googleapis.com/screenshot-production-us-central1/d9a4d6c1-9eda-494e-80a1-cee73c5b9046/d591fb7a-465e-444a-9c64-43cf4c1f10f9/JenUaQM
+
+[33mcommit 028ee64b43a1ab84c56733a297c38c6214133cb4[m
+Author: rajacc9outlook <49600134-rajacc9outlook@users.noreply.replit.com>
+Date:   Mon Nov 10 13:08:07 2025 +0000
+
+    Saved progress at the end of the loop
+    
+    Replit-Commit-Author: Agent
+    Replit-Commit-Session-Id: d591fb7a-465e-444a-9c64-43cf4c1f10f9
+    Replit-Commit-Checkpoint-Type: full_checkpoint
+    Replit-Commit-Event-Id: 8d844df0-d416-4641-91e2-9606860c2c94
+    Replit-Commit-Screenshot-Url: https://storage.googleapis.com/screenshot-production-us-central1/d9a4d6c1-9eda-494e-80a1-cee73c5b9046/d591fb7a-465e-444a-9c64-43cf4c1f10f9/JenUaQM
+
+[33mcommit 05a7c39200f02f0555ac2909eb776e2795cf4461[m
+Author: rajacc9outlook <49600134-rajacc9outlook@users.noreply.replit.com>
+Date:   Mon Nov 10 13:07:20 2025 +0000
+
+    Add comprehensive documentation for beginners and technical users
+    
+    Create two new markdown files: BEGINNERS_GUIDE.md and TECHNICAL_DOCUMENTATION.md, detailing game mechanics, tech stack, and architecture.
+    
+    Replit-Commit-Author: Agent
+    Replit-Commit-Session-Id: d591fb7a-465e-444a-9c64-43cf4c1f10f9
+    Replit-Commit-Checkpoint-Type: intermediate_checkpoint
+    Replit-Commit-Event-Id: 25f9b634-6a77-433e-8622-b59dd94be206
+    Replit-Commit-Screenshot-Url: https://storage.googleapis.com/screenshot-production-us-central1/d9a4d6c1-9eda-494e-80a1-cee73c5b9046/d591fb7a-465e-444a-9c64-43cf4c1f10f9/6QKSIAp
+
+[33mcommit 7c56e7a41fc853eeacd51da529443483025ee26a[m
+Author: rajacc9outlook <49600134-rajacc9outlook@users.noreply.replit.com>
+Date:   Mon Nov 10 12:43:07 2025 +0000
+
+    Saved progress at the end of the loop
+    
+    Replit-Commit-Author: Agent
+    Replit-Commit-Session-Id: d591fb7a-465e-444a-9c64-43cf4c1f10f9
+    Replit-Commit-Checkpoint-Type: full_checkpoint
+    Replit-Commit-Event-Id: f6993504-7bc9-49dd-a446-6e680a53bc6d
+    Replit-Commit-Screenshot-Url: https://storage.googleapis.com/screenshot-production-us-central1/d9a4d6c1-9eda-494e-80a1-cee73c5b9046/d591fb7a-465e-444a-9c64-43cf4c1f10f9/6QKSIAp
+
+[33mcommit cd5d8487c190b600ee5611752ef382e7852513e0[m
+Author: rajacc9outlook <49600134-rajacc9outlook@users.noreply.replit.com>
+Date:   Mon Nov 10 12:41:49 2025 +0000
+
+    Saved progress at the end of the loop
+    
+    Replit-Commit-Author: Agent
+    Replit-Commit-Session-Id: d591fb7a-465e-444a-9c64-43cf4c1f10f9
+    Replit-Commit-Checkpoint-Type: full_checkpoint
+    Replit-Commit-Event-Id: 9ce10b7a-0431-4cf5-b107-c2e127f3884f
+    Replit-Commit-Screenshot-Url: https://storage.googleapis.com/screenshot-production-us-central1/d9a4d6c1-9eda-494e-80a1-cee73c5b9046/d591fb7a-465e-444a-9c64-43cf4c1f10f9/6QKSIAp
+
+[33mcommit 38f31423223a89f1df363595109147051a6cb688[m[33m ([m[1;34mgrafted[m[33m)[m
+Author: Raj Patil <121811421+rajpatilrobotics@users.noreply.github.com>
+Date:   Mon Nov 10 09:35:51 2025 +0000
+
+    update

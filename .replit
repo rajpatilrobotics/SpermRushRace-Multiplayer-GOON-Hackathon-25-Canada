@@ -1,0 +1,5 @@
+[agent]
+expertMode = true
+
+[nix]
+packages = ["nano"]
