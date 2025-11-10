@@ -266,21 +266,22 @@ export const useRace = create<RaceState>((set, get) => ({
     const racer = state.racers.find((r) => r.id === racerId);
     if (!racer) return;
     
+    const playerName = (racer as any).nickname || racer.name;
     let message = "";
     let multiplier = 1;
     
     switch (powerUp.type) {
       case "lube":
         multiplier = 1.5;
-        message = "💧 LUBE BOOST! Super slippery!";
+        message = `💧 ${playerName} got Lube Boost!`;
         break;
       case "mutation":
         multiplier = 1.3;
-        message = "🧬 MUTATION! Enhanced abilities!";
+        message = `🧬 ${playerName} got Mutation!`;
         break;
       case "viagra":
         multiplier = 1.7;
-        message = "💊 VIAGRA POWER! Maximum thrust!";
+        message = `💊 ${playerName} got Viagra Power!`;
         break;
     }
     
@@ -307,25 +308,26 @@ export const useRace = create<RaceState>((set, get) => ({
     const racer = state.racers.find((r) => r.id === racerId);
     if (!racer) return;
     
+    const playerName = (racer as any).nickname || racer.name;
     let message = "";
     let slowdownDuration = 0;
     
     switch (obstacle.type) {
       case "condom":
         slowdownDuration = 2000;
-        message = "🚫 CONDOM BARRIER! -50% Speed!";
+        message = `🚫 ${playerName} hit Condom Barrier!`;
         break;
       case "pill":
         slowdownDuration = 1500;
-        message = "💊 Birth Control! Slowing down!";
+        message = `💊 ${playerName} hit Birth Control!`;
         break;
       case "antibody":
         slowdownDuration = 3000;
-        message = "🦠 Antibody! Slowing you down!";
+        message = `🦠 ${playerName} hit Antibody!`;
         break;
       case "std":
         slowdownDuration = 3000;
-        message = "🦠 STD! Slowing you down!";
+        message = `🦠 ${playerName} hit STD!`;
         break;
     }
     

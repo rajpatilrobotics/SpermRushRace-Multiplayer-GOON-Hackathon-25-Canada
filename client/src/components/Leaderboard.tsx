@@ -19,40 +19,40 @@ export function Leaderboard() {
   
   return (
     <div
-      className="fixed top-4 right-4 bg-white rounded-2xl shadow-2xl p-4 w-64"
+      className="fixed top-4 right-4 bg-white bg-opacity-90 rounded-lg shadow-lg p-3 w-56"
       style={{ fontFamily: "'Comic Sans MS', cursive" }}
     >
-      <h2 className="text-xl font-bold text-center mb-3" style={{ color: "#FF6B9D" }}>
-        {isMultiplayer ? "Live Leaderboard" : "Leaderboard"}
+      <h2 className="text-sm font-bold text-center mb-2" style={{ color: "#FF6B9D" }}>
+        {isMultiplayer ? "🏁 Live Leaderboard" : "🏁 Leaderboard"}
       </h2>
       
-      <div className="space-y-3">
+      <div className="space-y-2">
         {playersToShow.map((player, index) => {
           const progress = (player.y / trackHeight) * 100;
           const medals = ["🥇", "🥈", "🥉"];
           const displayName = isMultiplayer ? player.nickname : player.name;
           
           return (
-            <div key={player.id} className="bg-gray-50 rounded-xl p-3">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">{medals[index] || `#${index + 1}`}</span>
+            <div key={player.id} className="bg-gray-50 bg-opacity-80 rounded-lg p-2">
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-1">
+                  <span className="text-sm">{medals[index] || `#${index + 1}`}</span>
                   <div>
-                    <div className="font-bold" style={{ color: player.color }}>
+                    <div className="text-xs font-bold" style={{ color: player.color }}>
                       {displayName}
                     </div>
                     <div className="text-xs text-gray-500">
-                      {progress.toFixed(1)}% {player.finished && "✅"}
+                      {progress.toFixed(0)}% {player.finished && "✅"}
                     </div>
                   </div>
                 </div>
                 <div
-                  className="w-4 h-4 rounded-full"
+                  className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: player.color }}
                 />
               </div>
               
-              <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+              <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div
                   className="h-full transition-all duration-300"
                   style={{
