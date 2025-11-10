@@ -5,6 +5,7 @@ import { VoiceBoost } from "./components/VoiceBoost";
 import { RaceCommentary } from "./components/RaceCommentary";
 import { Leaderboard } from "./components/Leaderboard";
 import { GameUI } from "./components/GameUI";
+import CollisionNotifications from "./components/CollisionNotifications";
 import { StartScreen } from "./components/StartScreen";
 import { FinishScreen } from "./components/FinishScreen";
 import { LobbyScreen } from "./components/LobbyScreen";
@@ -28,6 +29,7 @@ function App() {
           <Leaderboard />
           <VoiceBoost />
           <GameUI />
+          <CollisionNotifications />
           <RaceCommentary />
         </>
       )}

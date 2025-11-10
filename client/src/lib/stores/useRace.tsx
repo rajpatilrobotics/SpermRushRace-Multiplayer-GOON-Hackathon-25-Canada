@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { useAudio } from "./useAudio";
 
 export type RacePhase = "ready" | "racing" | "finished";
 
@@ -90,6 +91,9 @@ export interface Racer {
   comboEffect: ComboEffect | null;
   comboTimer: number;
   collectedPowerUps: string[];
+  isDizzy: boolean;
+  dizzyTimer: number;
+  lastCollisionTime: number;
 }
 
 export interface ActiveEffect {
@@ -98,6 +102,13 @@ export interface ActiveEffect {
   message: string;
   duration: number;
   timer: number;
+}
+
+export interface CollisionNotification {
+  id: string;
+  message: string;
+  timer: number;
+  duration: number;
 }
 
 interface RaceState {
@@ -112,6 +123,7 @@ interface RaceState {
   trackHeight: number;
   cameraY: number;
   activeEffects: ActiveEffect[];
+  collisionNotifications: CollisionNotification[];
   lastCommentaryTime: number;
   voiceBoostActive: boolean;
   voiceBoostCooldown: number;
@@ -132,9 +144,11 @@ interface RaceState {
   collectMysteryEgg: (racerId: string, eggId: string) => void;
   updateCamera: (y: number) => void;
   addActiveEffect: (effect: Omit<ActiveEffect, 'id'>) => void;
+  addCollisionNotification: (message: string) => void;
   activateVoiceBoost: () => void;
   updateTimers: (delta: number) => void;
   checkCollisions: () => void;
+  checkSpermCollisions: () => void;
   dropCondom: () => void;
   checkSlipstreams: () => void;
   addParticles: (x: number, y: number, color: string, count: number, type?: 'trail' | 'explosion' | 'splash') => void;
@@ -263,6 +277,9 @@ export const useRace = create<RaceState>((set, get) => ({
       comboEffect: null,
       comboTimer: 0,
       collectedPowerUps: [],
+      isDizzy: false,
+      dizzyTimer: 0,
+      lastCollisionTime: 0,
     },
     {
       id: "speedy",
@@ -282,6 +299,9 @@ export const useRace = create<RaceState>((set, get) => ({
       comboEffect: null,
       comboTimer: 0,
       collectedPowerUps: [],
+      isDizzy: false,
+      dizzyTimer: 0,
+      lastCollisionTime: 0,
     },
     {
       id: "turbo",
@@ -301,6 +321,9 @@ export const useRace = create<RaceState>((set, get) => ({
       comboEffect: null,
       comboTimer: 0,
       collectedPowerUps: [],
+      isDizzy: false,
+      dizzyTimer: 0,
+      lastCollisionTime: 0,
     },
   ],
   powerUps: generatePowerUps(),
@@ -312,6 +335,7 @@ export const useRace = create<RaceState>((set, get) => ({
   trackHeight: TRACK_HEIGHT,
   cameraY: 0,
   activeEffects: [],
+  collisionNotifications: [],
   lastCommentaryTime: 0,
   voiceBoostActive: false,
   voiceBoostCooldown: 0,
@@ -346,6 +370,9 @@ export const useRace = create<RaceState>((set, get) => ({
           comboEffect: null,
           comboTimer: 0,
           collectedPowerUps: [],
+          isDizzy: false,
+          dizzyTimer: 0,
+          lastCollisionTime: 0,
         },
         {
           id: "speedy",
@@ -365,6 +392,9 @@ export const useRace = create<RaceState>((set, get) => ({
           comboEffect: null,
           comboTimer: 0,
           collectedPowerUps: [],
+          isDizzy: false,
+          dizzyTimer: 0,
+          lastCollisionTime: 0,
         },
         {
           id: "turbo",
@@ -384,6 +414,9 @@ export const useRace = create<RaceState>((set, get) => ({
           comboEffect: null,
           comboTimer: 0,
           collectedPowerUps: [],
+          isDizzy: false,
+          dizzyTimer: 0,
+          lastCollisionTime: 0,
         },
       ],
       powerUps: generatePowerUps(),
@@ -394,6 +427,7 @@ export const useRace = create<RaceState>((set, get) => ({
       bossSperm: createBossSperm(),
       cameraY: 0,
       activeEffects: [],
+      collisionNotifications: [],
       lastCommentaryTime: 0,
       voiceBoostActive: false,
       voiceBoostCooldown: 0,
@@ -614,6 +648,13 @@ export const useRace = create<RaceState>((set, get) => ({
     }));
   },
   
+  addCollisionNotification: (message) => {
+    const id = `notification-${Date.now()}-${Math.random()}`;
+    set((state) => ({
+      collisionNotifications: [...state.collisionNotifications, { id, message, timer: 3000, duration: 3000 }],
+    }));
+  },
+  
   activateVoiceBoost: () => {
     const state = get();
     if (state.voiceBoostCooldown > 0) return;
@@ -671,6 +712,15 @@ export const useRace = create<RaceState>((set, get) => ({
           updates.slipstreamTimer = newSlipstreamTimer;
         }
         
+        // Handle dizzy timer
+        if (racer.dizzyTimer > 0) {
+          const newDizzyTimer = Math.max(0, racer.dizzyTimer - delta);
+          updates.dizzyTimer = newDizzyTimer;
+          if (newDizzyTimer === 0) {
+            updates.isDizzy = false;
+          }
+        }
+        
         return Object.keys(updates).length > 0 ? { ...racer, ...updates } : racer;
       });
       
@@ -681,6 +731,13 @@ export const useRace = create<RaceState>((set, get) => ({
         }))
         .filter((effect) => effect.timer > 0);
       
+      const newCollisionNotifications = state.collisionNotifications
+        .map((notification) => ({
+          ...notification,
+          timer: Math.max(0, notification.timer - delta),
+        }))
+        .filter((notification) => notification.timer > 0);
+      
       const newVoiceBoostCooldown = Math.max(0, state.voiceBoostCooldown - delta);
       
       // Decrease screen shake
@@ -689,6 +746,7 @@ export const useRace = create<RaceState>((set, get) => ({
       return {
         racers: newRacers,
         activeEffects: newActiveEffects,
+        collisionNotifications: newCollisionNotifications,
         voiceBoostCooldown: newVoiceBoostCooldown,
         screenShake: newScreenShake,
       };
@@ -760,38 +818,102 @@ export const useRace = create<RaceState>((set, get) => ({
       });
     });
     
-    // Check racer-to-racer collisions (bumping/bouncing and power-up stealing)
+    // Check racer-to-racer collisions (enhanced with physics, effects, and power-up stealing)
+    get().checkSpermCollisions();
+  },
+  
+  checkSpermCollisions: () => {
+    const state = get();
+    const now = Date.now();
+    const { playHit } = useAudio.getState();
+    
+    const collisionCommentary = [
+      "Direct hit!",
+      "That's gotta hurt!",
+      "Ouch! What a collision!",
+      "Bump and grind!",
+      "Watch where you're going!",
+      "They're getting physical!",
+      "Collision course!",
+      "Smackdown!",
+    ];
+    
     for (let i = 0; i < state.racers.length; i++) {
       for (let j = i + 1; j < state.racers.length; j++) {
         const racer1 = state.racers[i];
         const racer2 = state.racers[j];
+        
+        // Skip if either racer collided recently (500ms cooldown)
+        if (now - racer1.lastCollisionTime < 500 || now - racer2.lastCollisionTime < 500) continue;
         
         const dx = racer1.x - racer2.x;
         const dy = racer1.y - racer2.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
         
         if (distance < 50) {
-          // Bump/bounce physics
-          const angle = Math.atan2(dy, dx);
-          const pushStrength = 3;
+          // Calculate collision speed
+          const relativeVelocityX = racer1.velocityX - racer2.velocityX;
+          const relativeVelocityY = racer1.velocityY - racer2.velocityY;
+          const collisionSpeed = Math.sqrt(relativeVelocityX * relativeVelocityX + relativeVelocityY * relativeVelocityY);
+          const isHighSpeed = collisionSpeed > 5;
           
+          // Physics-based bounce
+          const angle = Math.atan2(dy, dx);
+          const pushStrength = Math.min(collisionSpeed * 0.5 + 2, 8);
+          
+          // Calculate impact point for visual effects
+          const impactX = (racer1.x + racer2.x) / 2;
+          const impactY = (racer1.y + racer2.y) / 2;
+          
+          // Apply bounce physics
           get().updateRacer(racer1.id, {
             x: racer1.x + Math.cos(angle) * pushStrength,
             velocityX: Math.cos(angle) * pushStrength,
+            velocityY: racer1.velocityY * 0.8,
+            lastCollisionTime: now,
           });
           
           get().updateRacer(racer2.id, {
             x: racer2.x - Math.cos(angle) * pushStrength,
             velocityX: -Math.cos(angle) * pushStrength,
+            velocityY: racer2.velocityY * 0.8,
+            lastCollisionTime: now,
           });
           
-          // Power-up stealing (only steal once per collision)
-          const state = get();
-          const currentRacer1 = state.racers.find(r => r.id === racer1.id);
-          const currentRacer2 = state.racers.find(r => r.id === racer2.id);
+          // Visual effects: white spark particles
+          get().addParticles(impactX, impactY, "#FFFFFF", 12, 'explosion');
+          get().addParticles(impactX, impactY, "#FFD700", 8, 'splash');
+          
+          // Camera shake (stronger for high-speed collisions)
+          get().triggerScreenShake(isHighSpeed ? 8 : 4);
+          
+          // Audio feedback
+          playHit();
+          
+          // High-speed collision = dizzy effect
+          if (isHighSpeed) {
+            const slowestRacer = racer1.speedMultiplier < racer2.speedMultiplier ? racer1 : racer2;
+            get().updateRacer(slowestRacer.id, {
+              isDizzy: true,
+              dizzyTimer: 1000,
+            });
+          }
+          
+          // Power-up stealing logic
+          const currentState = get();
+          const currentRacer1 = currentState.racers.find(r => r.id === racer1.id);
+          const currentRacer2 = currentState.racers.find(r => r.id === racer2.id);
           
           if (currentRacer1 && currentRacer2) {
+            const racer1Name = (currentRacer1 as any).nickname || currentRacer1.name;
+            const racer2Name = (currentRacer2 as any).nickname || currentRacer2.name;
+            
+            let stealMessage = "";
+            
             if (currentRacer1.activePowerUpType && currentRacer1.powerUpTimer > 100 && !currentRacer2.activePowerUpType) {
+              const powerUpName = currentRacer1.activePowerUpType === 'lube' ? 'Lube Boost' : 
+                                 currentRacer1.activePowerUpType === 'viagra' ? 'Viagra Power' : currentRacer1.activePowerUpType;
+              
               get().updateRacer(racer2.id, {
                 speedMultiplier: currentRacer1.speedMultiplier,
                 activePowerUpType: currentRacer1.activePowerUpType,
@@ -802,13 +924,19 @@ export const useRace = create<RaceState>((set, get) => ({
                 activePowerUpType: null,
                 powerUpTimer: 0,
               });
+              
+              stealMessage = `⚡ ${racer2Name} stole ${racer1Name}'s ${powerUpName}!`;
+              get().addCollisionNotification(stealMessage);
               get().addActiveEffect({
                 type: "steal",
-                message: `${racer2.name} stole ${racer1.name}'s power-up!`,
+                message: stealMessage,
                 duration: 2000,
                 timer: 2000,
               });
             } else if (currentRacer2.activePowerUpType && currentRacer2.powerUpTimer > 100 && !currentRacer1.activePowerUpType) {
+              const powerUpName = currentRacer2.activePowerUpType === 'lube' ? 'Lube Boost' : 
+                                 currentRacer2.activePowerUpType === 'viagra' ? 'Viagra Power' : currentRacer2.activePowerUpType;
+              
               get().updateRacer(racer1.id, {
                 speedMultiplier: currentRacer2.speedMultiplier,
                 activePowerUpType: currentRacer2.activePowerUpType,
@@ -819,14 +947,21 @@ export const useRace = create<RaceState>((set, get) => ({
                 activePowerUpType: null,
                 powerUpTimer: 0,
               });
+              
+              stealMessage = `⚡ ${racer1Name} stole ${racer2Name}'s ${powerUpName}!`;
+              get().addCollisionNotification(stealMessage);
               get().addActiveEffect({
                 type: "steal",
-                message: `${racer1.name} stole ${racer2.name}'s power-up!`,
+                message: stealMessage,
                 duration: 2000,
                 timer: 2000,
               });
             }
           }
+          
+          // Random collision commentary
+          const commentary = collisionCommentary[Math.floor(Math.random() * collisionCommentary.length)];
+          get().setEventMessage(commentary);
         }
       }
     }

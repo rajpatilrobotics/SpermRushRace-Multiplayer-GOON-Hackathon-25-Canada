@@ -291,6 +291,9 @@ export function GameCanvas() {
         // Check collisions
         state.checkCollisions();
         
+        // Check sperm-to-sperm collisions
+        state.checkSpermCollisions();
+        
         // Check slipstreams
         state.checkSlipstreams();
         
@@ -683,6 +686,17 @@ function drawSperm(ctx: CanvasRenderingContext2D, racer: Racer, x: number, y: nu
     }
   }
   
+  // Dizzy stars effect for collisions
+  if (racer.isDizzy) {
+    ctx.fillStyle = "#FFD700";
+    ctx.font = "bold 30px Arial";
+    ctx.textAlign = "center";
+    const bobbing = Math.sin(Date.now() / 200) * 3;
+    ctx.fillText("💫", -20, -70 + bobbing);
+    ctx.fillText("💫", 20, -70 + bobbing);
+    ctx.fillText("💫", 0, -80 + bobbing);
+  }
+  
   ctx.restore();
 }
 
@@ -862,6 +876,17 @@ function drawMultiplayerSperm(ctx: CanvasRenderingContext2D, player: any, x: num
   ctx.textAlign = "center";
   ctx.strokeText(player.nickname, 0, -65 * scale);
   ctx.fillText(player.nickname, 0, -65 * scale);
+  
+  // Dizzy stars effect for collisions
+  if (player.isDizzy) {
+    ctx.fillStyle = "#FFD700";
+    ctx.font = "bold 30px Arial";
+    ctx.textAlign = "center";
+    const bobbing = Math.sin(Date.now() / 200) * 3;
+    ctx.fillText("💫", -20, -70 + bobbing);
+    ctx.fillText("💫", 20, -70 + bobbing);
+    ctx.fillText("💫", 0, -80 + bobbing);
+  }
   
   ctx.restore();
 }
