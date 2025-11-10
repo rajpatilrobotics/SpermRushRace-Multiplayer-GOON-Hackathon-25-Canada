@@ -36,6 +36,7 @@ export interface Racer {
 }
 
 export interface ActiveEffect {
+  id: string;
   type: string;
   message: string;
   duration: number;
@@ -49,7 +50,7 @@ interface RaceState {
   obstacles: Obstacle[];
   trackHeight: number;
   cameraY: number;
-  activeEffect: ActiveEffect | null;
+  activeEffects: ActiveEffect[];
   lastCommentaryTime: number;
   voiceBoostActive: boolean;
   voiceBoostCooldown: number;
@@ -63,7 +64,7 @@ interface RaceState {
   collectPowerUp: (racerId: string, powerUpId: string) => void;
   hitObstacle: (racerId: string, obstacleId: string) => void;
   updateCamera: (y: number) => void;
-  setActiveEffect: (effect: ActiveEffect | null) => void;
+  addActiveEffect: (effect: Omit<ActiveEffect, 'id'>) => void;
   activateVoiceBoost: () => void;
   updateTimers: (delta: number) => void;
   checkCollisions: () => void;
@@ -168,7 +169,7 @@ export const useRace = create<RaceState>((set, get) => ({
   obstacles: generateObstacles(),
   trackHeight: TRACK_HEIGHT,
   cameraY: 0,
-  activeEffect: null,
+  activeEffects: [],
   lastCommentaryTime: 0,
   voiceBoostActive: false,
   voiceBoostCooldown: 0,
@@ -232,7 +233,7 @@ export const useRace = create<RaceState>((set, get) => ({
       powerUps: generatePowerUps(),
       obstacles: generateObstacles(),
       cameraY: 0,
-      activeEffect: null,
+      activeEffects: [],
       lastCommentaryTime: 0,
       voiceBoostActive: false,
       voiceBoostCooldown: 0,
@@ -290,7 +291,7 @@ export const useRace = create<RaceState>((set, get) => ({
       activePowerUpType: powerUp.type,
       powerUpTimer: 3000,
     });
-    get().setActiveEffect({ type: powerUp.type, message, duration: 3000, timer: 3000 });
+    get().addActiveEffect({ type: powerUp.type, message, duration: 3000, timer: 3000 });
   },
   
   hitObstacle: (racerId, obstacleId) => {
@@ -332,12 +333,17 @@ export const useRace = create<RaceState>((set, get) => ({
     }
     
     get().updateRacer(racerId, { speedMultiplier: 0.5, slowdownTimer: slowdownDuration });
-    get().setActiveEffect({ type: obstacle.type, message, duration: slowdownDuration, timer: slowdownDuration });
+    get().addActiveEffect({ type: obstacle.type, message, duration: slowdownDuration, timer: slowdownDuration });
   },
   
   updateCamera: (y) => set({ cameraY: y }),
   
-  setActiveEffect: (effect) => set({ activeEffect: effect }),
+  addActiveEffect: (effect) => {
+    const id = `effect-${Date.now()}-${Math.random()}`;
+    set((state) => ({
+      activeEffects: [...state.activeEffects, { ...effect, id }],
+    }));
+  },
   
   activateVoiceBoost: () => {
     const state = get();
@@ -347,10 +353,11 @@ export const useRace = create<RaceState>((set, get) => ({
     
     const player = state.racers.find((r) => r.isPlayer);
     if (player) {
+      const playerName = (player as any).nickname || player.name;
       get().updateRacer(player.id, { speedMultiplier: 2 });
-      get().setActiveEffect({
+      get().addActiveEffect({
         type: "voice",
-        message: "🎤 VOICE BOOST! East or West, Goon Hack is the Best!",
+        message: `🎤 ${playerName} activated Voice Boost!`,
         duration: 3000,
         timer: 3000,
       });
@@ -395,18 +402,18 @@ export const useRace = create<RaceState>((set, get) => ({
         return Object.keys(updates).length > 0 ? { ...racer, ...updates } : racer;
       });
       
-      const newActiveEffect = state.activeEffect
-        ? {
-            ...state.activeEffect,
-            timer: Math.max(0, state.activeEffect.timer - delta),
-          }
-        : null;
+      const newActiveEffects = state.activeEffects
+        .map((effect) => ({
+          ...effect,
+          timer: Math.max(0, effect.timer - delta),
+        }))
+        .filter((effect) => effect.timer > 0);
       
       const newVoiceBoostCooldown = Math.max(0, state.voiceBoostCooldown - delta);
       
       return {
         racers: newRacers,
-        activeEffect: newActiveEffect && newActiveEffect.timer > 0 ? newActiveEffect : null,
+        activeEffects: newActiveEffects,
         voiceBoostCooldown: newVoiceBoostCooldown,
       };
     });
@@ -453,10 +460,12 @@ export const useRace = create<RaceState>((set, get) => ({
           }));
           
           // Apply slowdown
+          const hitRacer = state.racers.find((r) => r.id === racer.id);
+          const playerName = hitRacer ? ((hitRacer as any).nickname || hitRacer.name) : "Someone";
           get().updateRacer(racer.id, { speedMultiplier: 0.5, slowdownTimer: 2000 });
-          get().setActiveEffect({
+          get().addActiveEffect({
             type: "condom",
-            message: "🚫 CONDOM BARRIER! -50% Speed!",
+            message: `🚫 ${playerName} hit Condom Barrier!`,
             duration: 2000,
             timer: 2000,
           });
@@ -506,7 +515,7 @@ export const useRace = create<RaceState>((set, get) => ({
                 activePowerUpType: null,
                 powerUpTimer: 0,
               });
-              get().setActiveEffect({
+              get().addActiveEffect({
                 type: "steal",
                 message: `${racer2.name} stole ${racer1.name}'s power-up!`,
                 duration: 2000,
@@ -523,7 +532,7 @@ export const useRace = create<RaceState>((set, get) => ({
                 activePowerUpType: null,
                 powerUpTimer: 0,
               });
-              get().setActiveEffect({
+              get().addActiveEffect({
                 type: "steal",
                 message: `${racer1.name} stole ${racer2.name}'s power-up!`,
                 duration: 2000,
@@ -581,7 +590,7 @@ export const useRace = create<RaceState>((set, get) => ({
             });
             
             if (follower.isPlayer) {
-              get().setActiveEffect({
+              get().addActiveEffect({
                 type: "slipstream",
                 message: `⚡ SLIPSTREAM! Following ${leader.name}!`,
                 duration: 500,

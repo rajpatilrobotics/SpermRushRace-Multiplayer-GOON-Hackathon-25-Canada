@@ -1,34 +1,38 @@
 import { useRace } from "@/lib/stores/useRace";
 
 export function GameUI() {
-  const { activeEffect, racers } = useRace();
+  const { activeEffects, racers } = useRace();
   
   const player = racers.find((r) => r.isPlayer);
   
   return (
     <div className="fixed inset-0 pointer-events-none">
-      {/* Active Effect Notification - Top Left */}
-      {activeEffect && activeEffect.timer > 0 && (
-        <div className="fixed top-4 left-4 pointer-events-none z-50">
+      {/* Active Effect Notifications - Top Left, Stacked */}
+      <div className="fixed top-4 left-4 pointer-events-none z-50 space-y-2">
+        {activeEffects.map((effect, index) => (
           <div
-            className="bg-white bg-opacity-95 rounded-xl shadow-xl p-4 border-2 border-pink-400"
-            style={{ fontFamily: "'Comic Sans MS', cursive" }}
+            key={effect.id}
+            className="bg-white bg-opacity-70 backdrop-blur-sm rounded-lg shadow-lg p-3 border border-pink-300"
+            style={{ 
+              fontFamily: "'Comic Sans MS', cursive",
+              animation: 'slideIn 0.3s ease-out'
+            }}
           >
-            <div className="text-lg font-bold" style={{ color: "#FF6B9D" }}>
-              {activeEffect.message}
+            <div className="text-sm font-bold" style={{ color: "#FF6B9D" }}>
+              {effect.message}
             </div>
             <div className="text-xs text-gray-600 mt-1">
-              {(activeEffect.timer / 1000).toFixed(1)}s remaining
+              {(effect.timer / 1000).toFixed(1)}s
             </div>
           </div>
-        </div>
-      )}
+        ))}
+      </div>
       
       {/* Speed indicator */}
       {player && player.speedMultiplier !== 1 && (
-        <div className="fixed top-20 left-4">
+        <div className="fixed bottom-4 left-4">
           <div
-            className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-lg shadow-lg bg-opacity-90"
+            className="bg-gradient-to-r from-purple-500 to-pink-500 bg-opacity-70 backdrop-blur-sm text-white px-4 py-2 rounded-lg shadow-lg"
             style={{ fontFamily: "'Comic Sans MS', cursive" }}
           >
             <div className="text-sm font-bold">

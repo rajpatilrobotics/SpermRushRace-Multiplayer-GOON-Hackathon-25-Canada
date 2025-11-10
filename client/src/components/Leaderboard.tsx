@@ -19,7 +19,7 @@ export function Leaderboard() {
   
   return (
     <div
-      className="fixed top-4 right-4 bg-white bg-opacity-90 rounded-lg shadow-lg p-3 w-56"
+      className="fixed top-4 right-4 bg-white bg-opacity-70 backdrop-blur-sm rounded-lg shadow-lg p-3 w-56"
       style={{ fontFamily: "'Comic Sans MS', cursive" }}
     >
       <h2 className="text-sm font-bold text-center mb-2" style={{ color: "#FF6B9D" }}>
@@ -33,7 +33,7 @@ export function Leaderboard() {
           const displayName = isMultiplayer ? player.nickname : player.name;
           
           return (
-            <div key={player.id} className="bg-gray-50 bg-opacity-80 rounded-lg p-2">
+            <div key={player.id} className="bg-gray-50 bg-opacity-60 rounded-lg p-2">
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-1">
                   <span className="text-sm">{medals[index] || `#${index + 1}`}</span>
@@ -52,7 +52,7 @@ export function Leaderboard() {
                 />
               </div>
               
-              <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div className="w-full h-2 bg-gray-200 bg-opacity-60 rounded-full overflow-hidden">
                 <div
                   className="h-full transition-all duration-300"
                   style={{
