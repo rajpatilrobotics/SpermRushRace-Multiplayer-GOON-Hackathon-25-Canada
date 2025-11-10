@@ -48,19 +48,17 @@ A hilarious multiplayer racing game where you control sperm characters swimming 
 
 ## 🎯 Demo
 
-> **Try it live:** [Play Gene Pool Royale](https://your-deployment-url.replit.app)
+**Live Demo:** Deploy this project on Replit and share your live URL here!
 
-### Screenshots
+### Game Preview
 
-<div align="center">
+The game features:
+- **Start Screen** - Choose between single player or multiplayer modes
+- **Multiplayer Lobby** - Create or join rooms with 6-character codes
+- **Race Screen** - Fast-paced swimming action with real-time leaderboard
+- **Finish Screen** - Celebration with confetti and race results
 
-| Start Screen | Multiplayer Lobby | Racing |
-|--------------|-------------------|--------|
-| ![Start](docs/screenshots/start.png) | ![Lobby](docs/screenshots/lobby.png) | ![Race](docs/screenshots/race.png) |
-
-*Create screenshots by taking them in your browser and adding them to `docs/screenshots/`*
-
-</div>
+> **Tip:** Take screenshots of your deployed game by pressing `F12` in your browser, then `Ctrl+Shift+P` and searching for "Screenshot"
 
 ---
 
