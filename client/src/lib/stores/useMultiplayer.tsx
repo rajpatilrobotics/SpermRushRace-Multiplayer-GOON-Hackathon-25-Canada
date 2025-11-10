@@ -32,6 +32,7 @@ interface MultiplayerState {
   error: string | null;
   gameStarted: boolean;
   rankings: MultiplayerPlayer[];
+  listenersSetup: boolean;
 
   // Actions
   setMultiplayer: (enabled: boolean) => void;
@@ -70,18 +71,22 @@ export const useMultiplayer = create<MultiplayerState>((set, get) => ({
   error: null,
   gameStarted: false,
   rankings: [],
+  listenersSetup: false,
 
   setMultiplayer: (enabled) => set({ isMultiplayer: enabled }),
 
   createRoom: (nickname) => {
     const socket = getSocket();
     set({ localPlayerNickname: nickname, error: null });
+    localStorage.setItem("multiplayerNickname", nickname);
     socket.emit("create-room", { nickname });
   },
 
   joinRoom: (roomCode, nickname) => {
     const socket = getSocket();
     set({ localPlayerNickname: nickname, error: null });
+    localStorage.setItem("multiplayerRoomCode", roomCode.toUpperCase());
+    localStorage.setItem("multiplayerNickname", nickname);
     socket.emit("join-room", { roomCode: roomCode.toUpperCase(), nickname });
   },
 
@@ -89,6 +94,8 @@ export const useMultiplayer = create<MultiplayerState>((set, get) => ({
     const socket = getSocket();
     socket.disconnect();
     socket.connect();
+    localStorage.removeItem("multiplayerRoomCode");
+    localStorage.removeItem("multiplayerNickname");
     set({
       roomCode: null,
       localPlayerId: null,
@@ -164,12 +171,19 @@ export const useMultiplayer = create<MultiplayerState>((set, get) => ({
   },
 
   setupSocketListeners: () => {
+    // Only set up listeners once
+    if (get().listenersSetup) {
+      return;
+    }
+    
     const socket = getSocket();
+    set({ listenersSetup: true });
 
     // Room created
     socket.on("room-created", (data: { roomCode: string; player: MultiplayerPlayer; isHost: boolean }) => {
       const newPlayers = new Map<string, MultiplayerPlayer>();
       newPlayers.set(data.player.id, data.player);
+      localStorage.setItem("multiplayerRoomCode", data.roomCode);
       set({
         roomCode: data.roomCode,
         localPlayerId: data.player.id,
@@ -188,6 +202,7 @@ export const useMultiplayer = create<MultiplayerState>((set, get) => ({
     }) => {
       const newPlayers = new Map<string, MultiplayerPlayer>();
       data.players.forEach((p) => newPlayers.set(p.id, p));
+      localStorage.setItem("multiplayerRoomCode", data.roomCode);
       set({
         roomCode: data.roomCode,
         localPlayerId: data.player.id,
@@ -291,8 +306,29 @@ export const useMultiplayer = create<MultiplayerState>((set, get) => ({
     // Error
     socket.on("room-error", (data: { message: string }) => {
       set({ error: data.message });
+      // If room not found during reconnection, clear localStorage
+      if (data.message === "Room not found") {
+        localStorage.removeItem("multiplayerRoomCode");
+      }
     });
   },
 
   clearError: () => set({ error: null }),
 }));
+
+// Auto-reconnection on page load
+if (typeof window !== 'undefined') {
+  // Set up socket listeners immediately
+  useMultiplayer.getState().setupSocketListeners();
+  
+  const savedRoomCode = localStorage.getItem("multiplayerRoomCode");
+  const savedNickname = localStorage.getItem("multiplayerNickname");
+  
+  if (savedRoomCode && savedNickname) {
+    // Wait a bit for socket to initialize, then reconnect
+    setTimeout(() => {
+      console.log(`Attempting to reconnect to room ${savedRoomCode} as ${savedNickname}`);
+      useMultiplayer.getState().joinRoom(savedRoomCode, savedNickname);
+    }, 1000);
+  }
+}

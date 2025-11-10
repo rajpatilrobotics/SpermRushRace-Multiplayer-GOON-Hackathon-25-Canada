@@ -30,6 +30,7 @@ export interface GameRoom {
   gameFinished: boolean;
   host: string;
   createdAt: number;
+  emptyAt: number | null;
 }
 
 const rooms = new Map<string, GameRoom>();
@@ -98,6 +99,7 @@ export function setupSocket(httpServer: Server) {
         gameFinished: false,
         host: socket.id,
         createdAt: Date.now(),
+        emptyAt: null,
       };
 
       rooms.set(roomCode, room);
@@ -121,8 +123,8 @@ export function setupSocket(httpServer: Server) {
         return;
       }
 
-      if (room.players.size >= 3) {
-        socket.emit("room-error", { message: "Room is full (max 3 players)" });
+      if (room.players.size >= 6) {
+        socket.emit("room-error", { message: "Room is full (max 6 players)" });
         return;
       }
 
@@ -153,6 +155,14 @@ export function setupSocket(httpServer: Server) {
 
       room.players.set(socket.id, player);
       socket.join(data.roomCode.toUpperCase());
+      
+      // Room is no longer empty
+      room.emptyAt = null;
+      
+      // If this is the first player joining an empty room, make them the host
+      if (room.players.size === 1) {
+        room.host = socket.id;
+      }
 
       // Send room state to the joining player
       socket.emit("room-joined", {
@@ -326,10 +336,10 @@ export function setupSocket(httpServer: Server) {
             io.to(roomCode).emit("new-host", { hostId: newHost });
           }
 
-          // Delete empty rooms
+          // Mark room as empty instead of deleting immediately
           if (room.players.size === 0) {
-            rooms.delete(roomCode);
-            console.log(`Room ${roomCode} deleted (empty)`);
+            room.emptyAt = Date.now();
+            console.log(`Room ${roomCode} is now empty, will be deleted in 5 minutes if no one joins`);
           }
 
           break;
@@ -338,18 +348,25 @@ export function setupSocket(httpServer: Server) {
     });
   });
 
-  // Clean up old rooms periodically (every 10 minutes)
+  // Clean up old rooms periodically (every minute)
   setInterval(() => {
     const now = Date.now();
     const ROOM_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+    const EMPTY_ROOM_TIMEOUT = 5 * 60 * 1000; // 5 minutes
 
     for (const [roomCode, room] of Array.from(rooms.entries())) {
+      // Delete rooms that have been created for more than 30 minutes
       if (now - room.createdAt > ROOM_TIMEOUT) {
         rooms.delete(roomCode);
-        console.log(`Room ${roomCode} deleted (timeout)`);
+        console.log(`Room ${roomCode} deleted (30 minute timeout)`);
+      }
+      // Delete rooms that have been empty for more than 5 minutes
+      else if (room.emptyAt !== null && now - room.emptyAt > EMPTY_ROOM_TIMEOUT) {
+        rooms.delete(roomCode);
+        console.log(`Room ${roomCode} deleted (empty for 5 minutes)`);
       }
     }
-  }, 10 * 60 * 1000);
+  }, 60 * 1000); // Check every minute
 
   return io;
 }

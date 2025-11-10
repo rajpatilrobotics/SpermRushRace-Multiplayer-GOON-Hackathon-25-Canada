@@ -74,7 +74,7 @@ export function StartScreen() {
             onClick={handleMultiplayer}
             className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-12 py-4 rounded-full text-2xl font-bold shadow-lg hover:scale-110 transition-transform"
           >
-            👥 Multiplayer (Up to 3 Players)
+            👥 Multiplayer (Up to 6 Players)
           </button>
         </div>
       </div>

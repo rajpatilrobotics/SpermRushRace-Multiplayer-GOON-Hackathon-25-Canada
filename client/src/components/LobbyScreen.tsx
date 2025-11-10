@@ -95,7 +95,7 @@ export function LobbyScreen() {
             </div>
 
             <div className="text-center text-sm text-gray-500">
-              <p>Race with up to 3 players!</p>
+              <p>Race with up to 6 players!</p>
             </div>
           </div>
         )}
@@ -237,7 +237,7 @@ export function LobbyScreen() {
 
             <div className="space-y-3">
               <h3 className="text-lg font-semibold text-gray-700">
-                Players ({playerList.length}/3)
+                Players ({playerList.length}/6)
               </h3>
               <div className="space-y-2">
                 {playerList.map((player) => (
