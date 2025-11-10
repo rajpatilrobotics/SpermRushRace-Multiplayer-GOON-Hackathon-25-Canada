@@ -180,11 +180,14 @@ export function GameCanvas() {
           const keys = keysRef.current;
           const speed = 5 * player.speedMultiplier;
           
+          // Minimum auto-forward velocity scaled with speed multiplier
+          const minForwardVelocity = speed * 0.4; // 40% of current speed, respects slowdowns
+          
           let newVelX = 0;
-          let newVelY = 0;
+          let newVelY = minForwardVelocity; // Always moving forward by default
           
           if (keys.w || keys.ArrowUp) newVelY = speed;
-          if (keys.s || keys.ArrowDown) newVelY = -speed * 0.3;
+          if (keys.s || keys.ArrowDown) newVelY = -speed * 0.3; // Allow slight backward movement
           if (keys.a || keys.ArrowLeft) newVelX = -speed * 0.7;
           if (keys.d || keys.ArrowRight) newVelX = speed * 0.7;
           
@@ -299,22 +302,97 @@ export function GameCanvas() {
       const shakeY = (Math.random() - 0.5) * state.screenShake * 2;
       ctx.translate(shakeX, shakeY);
       
-      // Background gradient
-      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      gradient.addColorStop(0, "#E8C4F5");
-      gradient.addColorStop(1, "#C4E8F5");
-      ctx.fillStyle = gradient;
+      // Biological background - vaginal/reproductive tract environment
+      // Main flesh-toned gradient
+      const bgGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      bgGradient.addColorStop(0, "#FFB5D8"); // Light pink at top
+      bgGradient.addColorStop(0.5, "#FFA0C0"); // Medium pink-flesh
+      bgGradient.addColorStop(1, "#FF9CB8"); // Deeper pink at bottom
+      ctx.fillStyle = bgGradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       
-      // Distance markers
-      ctx.fillStyle = "#333";
+      // Add pulsing organic texture
+      const pulse = Math.sin(Date.now() / 1000) * 0.05 + 0.95;
+      
+      // Draw organic tissue texture/patterns
+      ctx.save();
+      ctx.globalAlpha = 0.15;
+      for (let i = 0; i < 5; i++) {
+        const y = (currentCameraY % 400) + (i * 200) - 200;
+        const screenY = canvas.height - (y - currentCameraY);
+        
+        // Organic flowing curves (like muscle tissue)
+        ctx.strokeStyle = "#FF6B9D";
+        ctx.lineWidth = 40 * pulse;
+        ctx.beginPath();
+        for (let x = 0; x < canvas.width; x += 2) {
+          const wave = Math.sin(x * 0.01 + i) * 30;
+          ctx.lineTo(x, screenY + wave);
+        }
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1.0;
+      ctx.restore();
+      
+      // Add subtle blood vessel patterns
+      ctx.save();
+      ctx.globalAlpha = 0.2;
+      ctx.strokeStyle = "#FF4080";
+      ctx.lineWidth = 3;
+      for (let i = 0; i < 3; i++) {
+        const startY = (currentCameraY % 600) + (i * 300) - 300;
+        const screenY = canvas.height - (startY - currentCameraY);
+        
+        ctx.beginPath();
+        ctx.moveTo(canvas.width * 0.1, screenY);
+        ctx.quadraticCurveTo(
+          canvas.width * 0.3, screenY + 80,
+          canvas.width * 0.5, screenY + 40
+        );
+        ctx.quadraticCurveTo(
+          canvas.width * 0.7, screenY,
+          canvas.width * 0.9, screenY + 60
+        );
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1.0;
+      ctx.restore();
+      
+      // Scrolling lane markers (like muscle tissue ridges)
+      ctx.save();
+      ctx.strokeStyle = "#FF85B0";
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.3;
+      for (let i = 0; i < trackHeight; i += 100) {
+        const screenY = canvas.height - (i - currentCameraY);
+        if (screenY > -50 && screenY < canvas.height + 50) {
+          // Horizontal tissue ridges
+          ctx.beginPath();
+          ctx.setLineDash([15, 10]);
+          ctx.moveTo(0, screenY);
+          ctx.lineTo(canvas.width, screenY);
+          ctx.stroke();
+        }
+      }
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1.0;
+      ctx.restore();
+      
+      // Distance markers with biological feel
+      ctx.save();
+      ctx.fillStyle = "#FFF";
+      ctx.strokeStyle = "#C2185B";
+      ctx.lineWidth = 3;
       ctx.font = "bold 18px 'Comic Sans MS', cursive";
       for (let i = 0; i < trackHeight; i += 200) {
         const screenY = canvas.height - (i - currentCameraY);
         if (screenY > 0 && screenY < canvas.height) {
-          ctx.fillText(`${i}m`, canvas.width - 60, screenY);
+          const distText = `${i}m`;
+          ctx.strokeText(distText, canvas.width - 60, screenY);
+          ctx.fillText(distText, canvas.width - 60, screenY);
         }
       }
+      ctx.restore();
       
       // Render power-ups
       powerUps.forEach((powerUp) => {
@@ -734,16 +812,61 @@ function drawObstacle(ctx: CanvasRenderingContext2D, obstacle: Obstacle, x: numb
   const imageSrc = imageMap[obstacle.type];
   const img = IMAGE_CACHE[imageSrc];
   
+  // Condom inflation animation when chasing
+  let scale = 1.0;
+  if (obstacle.type === 'condom' && obstacle.isChasing) {
+    // Pulsing inflation effect - grows from 100% to 150%
+    const inflationPulse = Math.sin(Date.now() / 400) * 0.25 + 1.25;
+    scale = inflationPulse;
+    
+    // Add particle puff effects around inflating condom
+    ctx.save();
+    ctx.globalAlpha = 0.4;
+    ctx.fillStyle = "#FFFFFF";
+    for (let i = 0; i < 6; i++) {
+      const angle = (i / 6) * Math.PI * 2 + Date.now() / 500;
+      const radius = 60 * scale;
+      const px = Math.cos(angle) * radius;
+      const py = Math.sin(angle) * radius;
+      const puffSize = 8 + Math.sin(Date.now() / 300 + i) * 4;
+      ctx.beginPath();
+      ctx.arc(px, py, puffSize, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1.0;
+    ctx.restore();
+  }
+  
   if (img) {
-    const size = 100;
+    const baseSize = 100;
+    const size = baseSize * scale;
     ctx.drawImage(img, -size / 2, -size / 2, size, size);
   }
   
   if (obstacle.isChasing) {
+    // Enhanced warning for chasing obstacles
+    ctx.save();
+    const warningPulse = Math.sin(Date.now() / 200) * 0.3 + 0.7;
+    ctx.globalAlpha = warningPulse;
+    
+    // Warning icon
     ctx.fillStyle = "#FF0000";
-    ctx.font = "bold 14px Arial";
+    ctx.font = "bold 20px Arial";
     ctx.textAlign = "center";
-    ctx.fillText("⚠️", 0, -40);
+    ctx.fillText("⚠️", 0, -60 * scale);
+    
+    // Danger text for condoms
+    if (obstacle.type === 'condom') {
+      ctx.fillStyle = "#FFFF00";
+      ctx.strokeStyle = "#FF0000";
+      ctx.lineWidth = 2;
+      ctx.font = "bold 12px Arial";
+      ctx.strokeText("INFLATING!", 0, -80 * scale);
+      ctx.fillText("INFLATING!", 0, -80 * scale);
+    }
+    
+    ctx.globalAlpha = 1.0;
+    ctx.restore();
   }
   
   ctx.fillStyle = "#FFF";
@@ -751,8 +874,8 @@ function drawObstacle(ctx: CanvasRenderingContext2D, obstacle: Obstacle, x: numb
   ctx.lineWidth = 3;
   ctx.font = "bold 10px 'Comic Sans MS', cursive";
   ctx.textAlign = "center";
-  ctx.strokeText(labelMap[obstacle.type], 0, 58);
-  ctx.fillText(labelMap[obstacle.type], 0, 58);
+  ctx.strokeText(labelMap[obstacle.type], 0, 58 * scale);
+  ctx.fillText(labelMap[obstacle.type], 0, 58 * scale);
   
   ctx.restore();
 }
