@@ -46,7 +46,7 @@ export interface Particle {
   type?: 'trail' | 'explosion' | 'splash';
 }
 
-export type HazardKind = 'turbulence' | 'acid' | 'boost' | 'spinner' | 'whitebloodcell';
+export type HazardKind = 'turbulence' | 'boost';
 
 export interface Hazard {
   id: string;
@@ -223,9 +223,9 @@ const generateMysteryEggs = (): MysteryEgg[] => {
 // Generate hazards along the track
 const generateHazards = (): Hazard[] => {
   const hazards: Hazard[] = [];
-  const kinds: HazardKind[] = ['turbulence', 'acid', 'boost', 'spinner', 'whitebloodcell'];
+  const kinds: HazardKind[] = ['turbulence', 'boost'];
   
-  for (let i = 2000; i < TRACK_HEIGHT; i += 1000) {
+  for (let i = 2000; i < TRACK_HEIGHT; i += 1200) {
     const kind = kinds[Math.floor(Math.random() * kinds.length)];
     
     const hazard: Hazard = {
@@ -233,16 +233,9 @@ const generateHazards = (): Hazard[] => {
       kind,
       x: Math.random() * (CANVAS_WIDTH - 300) + 150,
       y: i,
-      radius: kind === 'turbulence' || kind === 'acid' ? 120 : 80,
-      strength: kind === 'turbulence' ? 5 : kind === 'boost' ? 8 : 3,
+      radius: kind === 'turbulence' ? 120 : 80,
+      strength: kind === 'turbulence' ? 5 : 8,
     };
-    
-    if (kind === 'spinner') {
-      hazard.rotation = 0;
-    }
-    if (kind === 'whitebloodcell') {
-      hazard.patrolVelocityX = 2;
-    }
     
     hazards.push(hazard);
   }
@@ -288,7 +281,7 @@ export const useRace = create<RaceState>((set, get) => ({
     {
       id: "speedy",
       name: "Speedy",
-      color: "#9B59B6",
+      color: "#3498DB",
       x: CANVAS_WIDTH / 2 - 100,
       y: 100,
       velocityX: 0,
@@ -307,7 +300,7 @@ export const useRace = create<RaceState>((set, get) => ({
     {
       id: "turbo",
       name: "Turbo",
-      color: "#F39C12",
+      color: "#9B59B6",
       x: CANVAS_WIDTH / 2 + 100,
       y: 100,
       velocityX: 0,
@@ -371,7 +364,7 @@ export const useRace = create<RaceState>((set, get) => ({
         {
           id: "speedy",
           name: "Speedy",
-          color: "#9B59B6",
+          color: "#3498DB",
           x: CANVAS_WIDTH / 2 - 100,
           y: 100,
           velocityX: 0,
@@ -390,7 +383,7 @@ export const useRace = create<RaceState>((set, get) => ({
         {
           id: "turbo",
           name: "Turbo",
-          color: "#F39C12",
+          color: "#9B59B6",
           x: CANVAS_WIDTH / 2 + 100,
           y: 100,
           velocityX: 0,
@@ -1018,26 +1011,6 @@ export const useRace = create<RaceState>((set, get) => ({
   },
   
   updateHazards: (delta) => {
-    set((state) => {
-      const updatedHazards = state.hazards.map((hazard) => {
-        if (hazard.kind === 'spinner' && hazard.rotation !== undefined) {
-          return { ...hazard, rotation: (hazard.rotation + delta * 0.05) % (Math.PI * 2) };
-        }
-        if (hazard.kind === 'whitebloodcell') {
-          // White blood cells patrol back and forth
-          let newX = hazard.x + (hazard.patrolVelocityX || 2);
-          if (newX < 100 || newX > CANVAS_WIDTH - 100) {
-            hazard.patrolVelocityX = -(hazard.patrolVelocityX || 2);
-            newX = hazard.x + hazard.patrolVelocityX;
-          }
-          return { ...hazard, x: newX, patrolVelocityX: hazard.patrolVelocityX };
-        }
-        return hazard;
-      });
-      
-      return { hazards: updatedHazards };
-    });
-    
     // Check hazard collisions
     const state = get();
     state.racers.forEach((racer) => {
@@ -1054,11 +1027,6 @@ export const useRace = create<RaceState>((set, get) => ({
             get().updateRacer(racer.id, {
               velocityX: racer.velocityX + Math.cos(angle) * force,
               velocityY: racer.velocityY + Math.sin(angle) * force,
-            });
-          } else if (hazard.kind === 'acid') {
-            // Slow player down
-            get().updateRacer(racer.id, {
-              speedMultiplier: Math.max(0.3, racer.speedMultiplier * 0.9),
             });
           } else if (hazard.kind === 'boost') {
             // Speed boost

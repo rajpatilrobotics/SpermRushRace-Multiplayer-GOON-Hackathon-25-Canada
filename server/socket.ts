@@ -33,7 +33,7 @@ export interface GameRoom {
 }
 
 const rooms = new Map<string, GameRoom>();
-const playerColors = ["#FF6B9D", "#9B59B6", "#F39C12", "#3498DB", "#E74C3C", "#2ECC71"];
+const playerColors = ["#FF6B9D", "#3498DB", "#9B59B6", "#E74C3C", "#2ECC71", "#F39C12"];
 
 // Generate a random 6-character room code
 function generateRoomCode(): string {

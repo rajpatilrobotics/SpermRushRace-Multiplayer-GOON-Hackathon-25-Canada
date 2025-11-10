@@ -520,11 +520,14 @@ function drawSperm(ctx: CanvasRenderingContext2D, racer: Racer, x: number, y: nu
   ctx.save();
   ctx.translate(x, y);
   
-  const scale = 1.3;
+  const scale = 1.6;
+  const isBoosting = racer.speedMultiplier > 1;
+  const boostIntensity = Math.min((racer.speedMultiplier - 1) * 2, 1);
   
-  // Tail (wavy, flowing behind) - drawn first so head overlaps it
-  const tailLength = 78 * scale;
-  const tailSegments = 24;
+  // Draw glowing tail trail with particles
+  const tailLength = 120 * scale;
+  const tailSegments = 30;
+  const time = Date.now() / 1000;
   
   for (let i = 0; i < tailSegments; i++) {
     const progress = i / tailSegments;
@@ -532,119 +535,154 @@ function drawSperm(ctx: CanvasRenderingContext2D, racer: Racer, x: number, y: nu
     const nextProgress = (i + 1) / tailSegments;
     const nextYPos = nextProgress * tailLength;
     
-    // Enhanced wavy motion
-    const waveX = Math.sin(racer.tailPhase + progress * Math.PI * 2) * 8 * scale * (1 - progress);
-    const nextWaveX = Math.sin(racer.tailPhase + nextProgress * Math.PI * 2) * 8 * scale * (1 - nextProgress);
+    // More fluid wave motion
+    const waveAmplitude = 12 * scale * (1 - progress * 0.5);
+    const waveX = Math.sin(racer.tailPhase + progress * Math.PI * 3) * waveAmplitude;
+    const nextWaveX = Math.sin(racer.tailPhase + nextProgress * Math.PI * 3) * waveAmplitude;
     
-    // Tapering width
-    const width = 4 * scale * (1 - progress * 0.75);
+    // Tapering width that starts thicker
+    const width = 8 * scale * (1 - progress * 0.85);
     
-    // Enhanced gradient for tail
+    // Glowing gradient for tail
     const gradient = ctx.createLinearGradient(0, yPos, 0, nextYPos);
     gradient.addColorStop(0, racer.color);
-    gradient.addColorStop(0.5, racer.color + "CC");
-    gradient.addColorStop(1, racer.color + "99");
+    gradient.addColorStop(0.4, racer.color + "DD");
+    gradient.addColorStop(1, racer.color + "66");
     
     ctx.strokeStyle = gradient;
     ctx.lineWidth = width;
     ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     ctx.beginPath();
     ctx.moveTo(waveX, yPos);
     ctx.lineTo(nextWaveX, nextYPos);
     ctx.stroke();
+    
+    // Add glowing outer trail
+    ctx.strokeStyle = racer.color + "33";
+    ctx.lineWidth = width + 4;
+    ctx.stroke();
+    
+    // Sparkle particles along tail when boosting
+    if (isBoosting && i % 3 === 0) {
+      const sparkleX = waveX + (Math.random() - 0.5) * 8;
+      const sparkleY = yPos + (Math.random() - 0.5) * 8;
+      const sparkleSize = (1 + Math.random()) * boostIntensity * 2;
+      
+      ctx.fillStyle = `rgba(255, 255, 255, ${0.6 * boostIntensity})`;
+      ctx.beginPath();
+      ctx.arc(sparkleX, sparkleY, sparkleSize, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
   
-  // Head - larger teardrop/tadpole shape pointing upward
+  // Draw bigger, rounder head (oval shape)
+  const headWidth = 24 * scale;
+  const headHeight = 32 * scale;
+  
+  // Outer glow (largest)
+  if (isBoosting) {
+    const glowSize = 1 + boostIntensity * 0.3;
+    ctx.fillStyle = racer.color + Math.floor(40 * boostIntensity).toString(16).padStart(2, '0');
+    ctx.beginPath();
+    ctx.ellipse(0, -5 * scale, headWidth * glowSize, headHeight * glowSize, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  
+  // Mid glow
+  ctx.fillStyle = racer.color + "55";
+  ctx.beginPath();
+  ctx.ellipse(0, -5 * scale, headWidth * 1.15, headHeight * 1.15, 0, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Main head shape
   ctx.fillStyle = racer.color;
   ctx.beginPath();
-  
-  // Create larger teardrop shape (30% bigger)
-  ctx.moveTo(0, -23 * scale); // Pointed tip at top
-  ctx.quadraticCurveTo(10 * scale, -13 * scale, 13 * scale, 0); // Right curve
-  ctx.quadraticCurveTo(10 * scale, 10 * scale, 0, 13 * scale); // Bottom right
-  ctx.quadraticCurveTo(-10 * scale, 10 * scale, -13 * scale, 0); // Bottom left
-  ctx.quadraticCurveTo(-10 * scale, -13 * scale, 0, -23 * scale); // Left curve back to top
-  ctx.closePath();
+  ctx.ellipse(0, -5 * scale, headWidth, headHeight, 0, 0, Math.PI * 2);
   ctx.fill();
   
-  // Add enhanced gradient overlay for depth
-  const headGradient = ctx.createRadialGradient(-4 * scale, -10 * scale, 0, 0, 0, 20 * scale);
-  headGradient.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
-  headGradient.addColorStop(0.6, 'rgba(255, 255, 255, 0.1)');
-  headGradient.addColorStop(1, 'rgba(0, 0, 0, 0.15)');
-  ctx.fillStyle = headGradient;
+  // Glossy highlight (top-left shine)
+  const highlightGradient = ctx.createRadialGradient(
+    -8 * scale, -18 * scale, 0,
+    -4 * scale, -14 * scale, 20 * scale
+  );
+  highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.7)');
+  highlightGradient.addColorStop(0.3, 'rgba(255, 255, 255, 0.3)');
+  highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+  ctx.fillStyle = highlightGradient;
+  ctx.beginPath();
+  ctx.ellipse(0, -5 * scale, headWidth, headHeight, 0, 0, Math.PI * 2);
   ctx.fill();
   
-  // Add eyes for personality
-  const eyeY = -8 * scale;
-  const eyeSpacing = 5 * scale;
-  const eyeSize = 3.5 * scale;
+  // Subtle shadow at bottom for 3D depth
+  const shadowGradient = ctx.createRadialGradient(
+    0, 8 * scale, 0,
+    0, 8 * scale, 15 * scale
+  );
+  shadowGradient.addColorStop(0, 'rgba(0, 0, 0, 0.15)');
+  shadowGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = shadowGradient;
+  ctx.beginPath();
+  ctx.ellipse(0, -5 * scale, headWidth, headHeight, 0, 0, Math.PI * 2);
+  ctx.fill();
   
-  // Left eye
+  // Cute eyes
+  const eyeY = -12 * scale;
+  const eyeSpacing = 8 * scale;
+  const eyeSize = 5 * scale;
+  
+  // Eye whites
   ctx.fillStyle = "#FFFFFF";
   ctx.beginPath();
   ctx.arc(-eyeSpacing, eyeY, eyeSize, 0, Math.PI * 2);
   ctx.fill();
-  
-  // Right eye
   ctx.beginPath();
   ctx.arc(eyeSpacing, eyeY, eyeSize, 0, Math.PI * 2);
   ctx.fill();
   
-  // Pupils (slightly offset to give determined look)
-  const pupilSize = 1.8 * scale;
-  const pupilOffsetX = 0.5 * scale;
-  const pupilOffsetY = -0.3 * scale;
-  
-  ctx.fillStyle = "#000000";
+  // Pupils
+  const pupilSize = 2.5 * scale;
+  ctx.fillStyle = "#2C3E50";
   ctx.beginPath();
-  ctx.arc(-eyeSpacing + pupilOffsetX, eyeY + pupilOffsetY, pupilSize, 0, Math.PI * 2);
+  ctx.arc(-eyeSpacing, eyeY, pupilSize, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(eyeSpacing, eyeY, pupilSize, 0, Math.PI * 2);
   ctx.fill();
   
-  ctx.beginPath();
-  ctx.arc(eyeSpacing + pupilOffsetX, eyeY + pupilOffsetY, pupilSize, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // Eye shine/sparkle for extra life
+  // Eye shines
   ctx.fillStyle = "#FFFFFF";
-  const shineSize = 0.8 * scale;
+  const shineSize = 1.5 * scale;
   ctx.beginPath();
-  ctx.arc(-eyeSpacing - 0.8 * scale, eyeY - 0.8 * scale, shineSize, 0, Math.PI * 2);
+  ctx.arc(-eyeSpacing - 1.2 * scale, eyeY - 1.2 * scale, shineSize, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(eyeSpacing - 1.2 * scale, eyeY - 1.2 * scale, shineSize, 0, Math.PI * 2);
   ctx.fill();
   
-  ctx.beginPath();
-  ctx.arc(eyeSpacing - 0.8 * scale, eyeY - 0.8 * scale, shineSize, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // Determined mouth/smile
-  ctx.strokeStyle = "#000000";
-  ctx.lineWidth = 1.5 * scale;
+  // Happy smile
+  ctx.strokeStyle = "#2C3E50";
+  ctx.lineWidth = 2 * scale;
   ctx.lineCap = 'round';
   ctx.beginPath();
-  ctx.arc(0, 0, 4 * scale, 0.2, Math.PI - 0.2);
+  ctx.arc(0, -2 * scale, 6 * scale, 0.3, Math.PI - 0.3);
   ctx.stroke();
   
-  // Inner glow effect
-  ctx.strokeStyle = racer.color + "AA";
-  ctx.lineWidth = 2 * scale;
-  ctx.beginPath();
-  ctx.moveTo(0, -23 * scale);
-  ctx.quadraticCurveTo(10 * scale, -13 * scale, 13 * scale, 0);
-  ctx.quadraticCurveTo(10 * scale, 10 * scale, 0, 13 * scale);
-  ctx.quadraticCurveTo(-10 * scale, 10 * scale, -13 * scale, 0);
-  ctx.quadraticCurveTo(-10 * scale, -13 * scale, 0, -23 * scale);
-  ctx.closePath();
-  ctx.stroke();
-  
-  // Mid glow effect around head
-  ctx.strokeStyle = racer.color + "66";
-  ctx.lineWidth = 5 * scale;
-  ctx.stroke();
-  
-  // Outer glow
-  ctx.strokeStyle = racer.color + "33";
-  ctx.lineWidth = 9 * scale;
-  ctx.stroke();
+  // Boost sparkles around head
+  if (isBoosting) {
+    for (let i = 0; i < 6; i++) {
+      const angle = (time * 3 + i * Math.PI / 3) % (Math.PI * 2);
+      const sparkleDistance = (30 + Math.sin(time * 5 + i) * 5) * scale;
+      const sparkleX = Math.cos(angle) * sparkleDistance;
+      const sparkleY = -5 * scale + Math.sin(angle) * sparkleDistance * 1.3;
+      const sparkleSize = (2 + Math.sin(time * 4 + i)) * boostIntensity;
+      
+      ctx.fillStyle = `rgba(255, 255, 255, ${0.8 * boostIntensity})`;
+      ctx.beginPath();
+      ctx.arc(sparkleX, sparkleY, sparkleSize, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
   
   ctx.restore();
 }
@@ -653,11 +691,14 @@ function drawMultiplayerSperm(ctx: CanvasRenderingContext2D, player: any, x: num
   ctx.save();
   ctx.translate(x, y);
   
-  const scale = 1.3;
+  const scale = 1.6;
+  const isBoosting = player.speedMultiplier > 1;
+  const boostIntensity = Math.min((player.speedMultiplier - 1) * 2, 1);
   
-  // Tail (wavy, flowing behind) - drawn first so head overlaps it
-  const tailLength = 78 * scale;
-  const tailSegments = 24;
+  // Draw glowing tail trail with particles
+  const tailLength = 120 * scale;
+  const tailSegments = 30;
+  const time = Date.now() / 1000;
   
   for (let i = 0; i < tailSegments; i++) {
     const progress = i / tailSegments;
@@ -665,128 +706,163 @@ function drawMultiplayerSperm(ctx: CanvasRenderingContext2D, player: any, x: num
     const nextProgress = (i + 1) / tailSegments;
     const nextYPos = nextProgress * tailLength;
     
-    // Enhanced wavy motion
-    const waveX = Math.sin(player.tailPhase + progress * Math.PI * 2) * 8 * scale * (1 - progress);
-    const nextWaveX = Math.sin(player.tailPhase + nextProgress * Math.PI * 2) * 8 * scale * (1 - nextProgress);
+    // More fluid wave motion
+    const waveAmplitude = 12 * scale * (1 - progress * 0.5);
+    const waveX = Math.sin(player.tailPhase + progress * Math.PI * 3) * waveAmplitude;
+    const nextWaveX = Math.sin(player.tailPhase + nextProgress * Math.PI * 3) * waveAmplitude;
     
-    // Tapering width
-    const width = 4 * scale * (1 - progress * 0.75);
+    // Tapering width that starts thicker
+    const width = 8 * scale * (1 - progress * 0.85);
     
-    // Enhanced gradient for tail
+    // Glowing gradient for tail
     const gradient = ctx.createLinearGradient(0, yPos, 0, nextYPos);
     gradient.addColorStop(0, player.color);
-    gradient.addColorStop(0.5, player.color + "CC");
-    gradient.addColorStop(1, player.color + "99");
+    gradient.addColorStop(0.4, player.color + "DD");
+    gradient.addColorStop(1, player.color + "66");
     
     ctx.strokeStyle = gradient;
     ctx.lineWidth = width;
     ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     ctx.beginPath();
     ctx.moveTo(waveX, yPos);
     ctx.lineTo(nextWaveX, nextYPos);
     ctx.stroke();
+    
+    // Add glowing outer trail
+    ctx.strokeStyle = player.color + "33";
+    ctx.lineWidth = width + 4;
+    ctx.stroke();
+    
+    // Sparkle particles along tail when boosting
+    if (isBoosting && i % 3 === 0) {
+      const sparkleX = waveX + (Math.random() - 0.5) * 8;
+      const sparkleY = yPos + (Math.random() - 0.5) * 8;
+      const sparkleSize = (1 + Math.random()) * boostIntensity * 2;
+      
+      ctx.fillStyle = `rgba(255, 255, 255, ${0.6 * boostIntensity})`;
+      ctx.beginPath();
+      ctx.arc(sparkleX, sparkleY, sparkleSize, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
   
-  // Head - larger teardrop/tadpole shape pointing upward
+  // Draw bigger, rounder head (oval shape)
+  const headWidth = 24 * scale;
+  const headHeight = 32 * scale;
+  
+  // Outer glow (largest)
+  if (isBoosting) {
+    const glowSize = 1 + boostIntensity * 0.3;
+    ctx.fillStyle = player.color + Math.floor(40 * boostIntensity).toString(16).padStart(2, '0');
+    ctx.beginPath();
+    ctx.ellipse(0, -5 * scale, headWidth * glowSize, headHeight * glowSize, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  
+  // Mid glow
+  ctx.fillStyle = player.color + "55";
+  ctx.beginPath();
+  ctx.ellipse(0, -5 * scale, headWidth * 1.15, headHeight * 1.15, 0, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Main head shape
   ctx.fillStyle = player.color;
   ctx.beginPath();
-  
-  // Create larger teardrop shape (30% bigger)
-  ctx.moveTo(0, -23 * scale); // Pointed tip at top
-  ctx.quadraticCurveTo(10 * scale, -13 * scale, 13 * scale, 0); // Right curve
-  ctx.quadraticCurveTo(10 * scale, 10 * scale, 0, 13 * scale); // Bottom right
-  ctx.quadraticCurveTo(-10 * scale, 10 * scale, -13 * scale, 0); // Bottom left
-  ctx.quadraticCurveTo(-10 * scale, -13 * scale, 0, -23 * scale); // Left curve back to top
-  ctx.closePath();
+  ctx.ellipse(0, -5 * scale, headWidth, headHeight, 0, 0, Math.PI * 2);
   ctx.fill();
   
-  // Add enhanced gradient overlay for depth
-  const headGradient = ctx.createRadialGradient(-4 * scale, -10 * scale, 0, 0, 0, 20 * scale);
-  headGradient.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
-  headGradient.addColorStop(0.6, 'rgba(255, 255, 255, 0.1)');
-  headGradient.addColorStop(1, 'rgba(0, 0, 0, 0.15)');
-  ctx.fillStyle = headGradient;
+  // Glossy highlight (top-left shine)
+  const highlightGradient = ctx.createRadialGradient(
+    -8 * scale, -18 * scale, 0,
+    -4 * scale, -14 * scale, 20 * scale
+  );
+  highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.7)');
+  highlightGradient.addColorStop(0.3, 'rgba(255, 255, 255, 0.3)');
+  highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+  ctx.fillStyle = highlightGradient;
+  ctx.beginPath();
+  ctx.ellipse(0, -5 * scale, headWidth, headHeight, 0, 0, Math.PI * 2);
   ctx.fill();
   
-  // Add eyes for personality
-  const eyeY = -8 * scale;
-  const eyeSpacing = 5 * scale;
-  const eyeSize = 3.5 * scale;
+  // Subtle shadow at bottom for 3D depth
+  const shadowGradient = ctx.createRadialGradient(
+    0, 8 * scale, 0,
+    0, 8 * scale, 15 * scale
+  );
+  shadowGradient.addColorStop(0, 'rgba(0, 0, 0, 0.15)');
+  shadowGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = shadowGradient;
+  ctx.beginPath();
+  ctx.ellipse(0, -5 * scale, headWidth, headHeight, 0, 0, Math.PI * 2);
+  ctx.fill();
   
-  // Left eye
+  // Cute eyes
+  const eyeY = -12 * scale;
+  const eyeSpacing = 8 * scale;
+  const eyeSize = 5 * scale;
+  
+  // Eye whites
   ctx.fillStyle = "#FFFFFF";
   ctx.beginPath();
   ctx.arc(-eyeSpacing, eyeY, eyeSize, 0, Math.PI * 2);
   ctx.fill();
-  
-  // Right eye
   ctx.beginPath();
   ctx.arc(eyeSpacing, eyeY, eyeSize, 0, Math.PI * 2);
   ctx.fill();
   
-  // Pupils (slightly offset to give determined look)
-  const pupilSize = 1.8 * scale;
-  const pupilOffsetX = 0.5 * scale;
-  const pupilOffsetY = -0.3 * scale;
-  
-  ctx.fillStyle = "#000000";
+  // Pupils
+  const pupilSize = 2.5 * scale;
+  ctx.fillStyle = "#2C3E50";
   ctx.beginPath();
-  ctx.arc(-eyeSpacing + pupilOffsetX, eyeY + pupilOffsetY, pupilSize, 0, Math.PI * 2);
+  ctx.arc(-eyeSpacing, eyeY, pupilSize, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(eyeSpacing, eyeY, pupilSize, 0, Math.PI * 2);
   ctx.fill();
   
-  ctx.beginPath();
-  ctx.arc(eyeSpacing + pupilOffsetX, eyeY + pupilOffsetY, pupilSize, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // Eye shine/sparkle for extra life
+  // Eye shines
   ctx.fillStyle = "#FFFFFF";
-  const shineSize = 0.8 * scale;
+  const shineSize = 1.5 * scale;
   ctx.beginPath();
-  ctx.arc(-eyeSpacing - 0.8 * scale, eyeY - 0.8 * scale, shineSize, 0, Math.PI * 2);
+  ctx.arc(-eyeSpacing - 1.2 * scale, eyeY - 1.2 * scale, shineSize, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(eyeSpacing - 1.2 * scale, eyeY - 1.2 * scale, shineSize, 0, Math.PI * 2);
   ctx.fill();
   
-  ctx.beginPath();
-  ctx.arc(eyeSpacing - 0.8 * scale, eyeY - 0.8 * scale, shineSize, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // Determined mouth/smile
-  ctx.strokeStyle = "#000000";
-  ctx.lineWidth = 1.5 * scale;
+  // Happy smile
+  ctx.strokeStyle = "#2C3E50";
+  ctx.lineWidth = 2 * scale;
   ctx.lineCap = 'round';
   ctx.beginPath();
-  ctx.arc(0, 0, 4 * scale, 0.2, Math.PI - 0.2);
+  ctx.arc(0, -2 * scale, 6 * scale, 0.3, Math.PI - 0.3);
   ctx.stroke();
   
-  // Inner glow effect
-  ctx.strokeStyle = player.color + "AA";
-  ctx.lineWidth = 2 * scale;
-  ctx.beginPath();
-  ctx.moveTo(0, -23 * scale);
-  ctx.quadraticCurveTo(10 * scale, -13 * scale, 13 * scale, 0);
-  ctx.quadraticCurveTo(10 * scale, 10 * scale, 0, 13 * scale);
-  ctx.quadraticCurveTo(-10 * scale, 10 * scale, -13 * scale, 0);
-  ctx.quadraticCurveTo(-10 * scale, -13 * scale, 0, -23 * scale);
-  ctx.closePath();
-  ctx.stroke();
-  
-  // Mid glow effect around head
-  ctx.strokeStyle = player.color + "66";
-  ctx.lineWidth = 5 * scale;
-  ctx.stroke();
-  
-  // Outer glow
-  ctx.strokeStyle = player.color + "33";
-  ctx.lineWidth = 9 * scale;
-  ctx.stroke();
+  // Boost sparkles around head
+  if (isBoosting) {
+    for (let i = 0; i < 6; i++) {
+      const angle = (time * 3 + i * Math.PI / 3) % (Math.PI * 2);
+      const sparkleDistance = (30 + Math.sin(time * 5 + i) * 5) * scale;
+      const sparkleX = Math.cos(angle) * sparkleDistance;
+      const sparkleY = -5 * scale + Math.sin(angle) * sparkleDistance * 1.3;
+      const sparkleSize = (2 + Math.sin(time * 4 + i)) * boostIntensity;
+      
+      ctx.fillStyle = `rgba(255, 255, 255, ${0.8 * boostIntensity})`;
+      ctx.beginPath();
+      ctx.arc(sparkleX, sparkleY, sparkleSize, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
   
   // Player nickname label
   ctx.fillStyle = "#FFF";
   ctx.strokeStyle = "#000";
   ctx.lineWidth = 3;
-  ctx.font = "bold 12px Arial";
+  ctx.font = "bold 14px Arial";
   ctx.textAlign = "center";
-  ctx.strokeText(player.nickname, 0, -40 * scale);
-  ctx.fillText(player.nickname, 0, -40 * scale);
+  ctx.strokeText(player.nickname, 0, -65 * scale);
+  ctx.fillText(player.nickname, 0, -65 * scale);
   
   ctx.restore();
 }
@@ -1098,28 +1174,6 @@ function drawHazard(ctx: CanvasRenderingContext2D, hazard: any, x: number, y: nu
       ctx.arc(0, 0, hazard.radius * 0.7, rotation, rotation + Math.PI / 2);
       ctx.stroke();
     }
-  } else if (hazard.kind === 'acid') {
-    // Bubbling acid pool
-    const pulse = Math.sin(Date.now() / 400) * 0.15 + 0.85;
-    ctx.fillStyle = "#00FF0044";
-    ctx.beginPath();
-    ctx.arc(0, 0, hazard.radius * pulse, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Bubbles
-    ctx.fillStyle = "#00FF0066";
-    for (let i = 0; i < 5; i++) {
-      const bubbleTime = (Date.now() / 600 + i) % 1;
-      const bubbleSize = bubbleTime * 15;
-      const angle = (i / 5) * Math.PI * 2;
-      const bubbleX = Math.cos(angle) * hazard.radius * 0.5;
-      const bubbleY = Math.sin(angle) * hazard.radius * 0.5;
-      ctx.globalAlpha = 1 - bubbleTime;
-      ctx.beginPath();
-      ctx.arc(bubbleX, bubbleY, bubbleSize, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.globalAlpha = 1;
-    }
   } else if (hazard.kind === 'boost') {
     // Speed boost pad
     const pulse = Math.sin(Date.now() / 200) * 0.3 + 0.7;
@@ -1146,48 +1200,6 @@ function drawHazard(ctx: CanvasRenderingContext2D, hazard: any, x: number, y: nu
       ctx.fill();
     }
     ctx.globalAlpha = 1;
-  } else if (hazard.kind === 'spinner') {
-    // Rotating obstacle
-    ctx.save();
-    ctx.rotate(hazard.rotation || 0);
-    ctx.strokeStyle = "#FF00FF";
-    ctx.lineWidth = 8;
-    ctx.beginPath();
-    ctx.moveTo(-hazard.radius, 0);
-    ctx.lineTo(hazard.radius, 0);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(0, -hazard.radius);
-    ctx.lineTo(0, hazard.radius);
-    ctx.stroke();
-    ctx.restore();
-    
-    // Center
-    ctx.fillStyle = "#FF00FF";
-    ctx.beginPath();
-    ctx.arc(0, 0, 15, 0, Math.PI * 2);
-    ctx.fill();
-  } else if (hazard.kind === 'whitebloodcell') {
-    // White blood cell patrol
-    const pulse = Math.sin(Date.now() / 400) * 0.2 + 1.0;
-    ctx.fillStyle = "#FFFFFF";
-    ctx.globalAlpha = 0.8;
-    ctx.beginPath();
-    ctx.arc(0, 0, hazard.radius * pulse, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Nucleus
-    ctx.fillStyle = "#CCCCFF";
-    ctx.beginPath();
-    ctx.arc(0, 0, hazard.radius * 0.4, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Warning
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = "#FF0000";
-    ctx.font = "bold 16px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText("⚠️", 0, -hazard.radius - 10);
   }
   
   ctx.restore();
@@ -1197,60 +1209,140 @@ function drawBossSperm(ctx: CanvasRenderingContext2D, boss: any, x: number, y: n
   ctx.save();
   ctx.translate(x, y);
   
-  // Giant menacing sperm
-  const pulse = Math.sin(Date.now() / 300) * 0.2 + 1.2;
+  const scale = 2.2;
+  const pulse = Math.sin(Date.now() / 300) * 0.15 + 1.0;
+  const time = Date.now() / 1000;
+  const color = "#E74C3C";
   
-  // Menacing glow
-  const glowGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, 100 * pulse);
-  glowGradient.addColorStop(0, "#FF000088");
-  glowGradient.addColorStop(0.5, "#FF000044");
-  glowGradient.addColorStop(1, "#FF000000");
+  // Draw menacing glowing tail trail
+  const tailLength = 150 * scale;
+  const tailSegments = 35;
+  
+  for (let i = 0; i < tailSegments; i++) {
+    const progress = i / tailSegments;
+    const yPos = progress * tailLength;
+    const nextProgress = (i + 1) / tailSegments;
+    const nextYPos = nextProgress * tailLength;
+    
+    // Aggressive wave motion
+    const waveAmplitude = 18 * scale * (1 - progress * 0.5) * pulse;
+    const waveX = Math.sin(boss.tailPhase + progress * Math.PI * 3.5) * waveAmplitude;
+    const nextWaveX = Math.sin(boss.tailPhase + nextProgress * Math.PI * 3.5) * waveAmplitude;
+    
+    // Thicker tail
+    const width = 12 * scale * (1 - progress * 0.85);
+    
+    // Dark red glowing gradient
+    const gradient = ctx.createLinearGradient(0, yPos, 0, nextYPos);
+    gradient.addColorStop(0, color);
+    gradient.addColorStop(0.4, color + "DD");
+    gradient.addColorStop(1, color + "66");
+    
+    ctx.strokeStyle = gradient;
+    ctx.lineWidth = width;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(waveX, yPos);
+    ctx.lineTo(nextWaveX, nextYPos);
+    ctx.stroke();
+    
+    // Menacing outer glow
+    ctx.strokeStyle = color + "44";
+    ctx.lineWidth = width + 6;
+    ctx.stroke();
+  }
+  
+  // Draw bigger, meaner head
+  const headWidth = 28 * scale * pulse;
+  const headHeight = 38 * scale * pulse;
+  
+  // Pulsing menacing glow
+  const glowGradient = ctx.createRadialGradient(0, -5 * scale, 0, 0, -5 * scale, 80 * pulse);
+  glowGradient.addColorStop(0, color + "AA");
+  glowGradient.addColorStop(0.5, color + "44");
+  glowGradient.addColorStop(1, color + "00");
   ctx.fillStyle = glowGradient;
   ctx.beginPath();
-  ctx.arc(0, 0, 100 * pulse, 0, Math.PI * 2);
+  ctx.arc(0, -5 * scale, 80 * pulse, 0, Math.PI * 2);
   ctx.fill();
   
-  // Head (larger than normal)
+  // Mid glow
+  ctx.fillStyle = color + "77";
+  ctx.beginPath();
+  ctx.ellipse(0, -5 * scale, headWidth * 1.2, headHeight * 1.2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Main head shape
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.ellipse(0, -5 * scale, headWidth, headHeight, 0, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Darker shadow for depth
+  const shadowGradient = ctx.createRadialGradient(
+    0, 10 * scale, 0,
+    0, 10 * scale, 25 * scale
+  );
+  shadowGradient.addColorStop(0, 'rgba(139, 0, 0, 0.4)');
+  shadowGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = shadowGradient;
+  ctx.beginPath();
+  ctx.ellipse(0, -5 * scale, headWidth, headHeight, 0, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Angry eyes (narrowed, tilted)
+  const eyeY = -12 * scale;
+  const eyeSpacing = 10 * scale;
+  const eyeSize = 6 * scale;
+  
+  // White parts
+  ctx.fillStyle = "#FFFFFF";
+  ctx.beginPath();
+  ctx.ellipse(-eyeSpacing, eyeY, eyeSize * 0.8, eyeSize, -0.3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(eyeSpacing, eyeY, eyeSize * 0.8, eyeSize, 0.3, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Angry red pupils
+  const pupilSize = 3.5 * scale;
   ctx.fillStyle = "#8B0000";
-  ctx.strokeStyle = "#FF0000";
-  ctx.lineWidth = 3;
   ctx.beginPath();
-  ctx.ellipse(0, 0, 35 * pulse, 50 * pulse, 0, 0, Math.PI * 2);
+  ctx.arc(-eyeSpacing + scale, eyeY + scale, pupilSize, 0, Math.PI * 2);
   ctx.fill();
-  ctx.stroke();
-  
-  // Angry eyes
-  ctx.fillStyle = "#FFFF00";
   ctx.beginPath();
-  ctx.arc(-12, -10, 8, 0, Math.PI * 2);
-  ctx.arc(12, -10, 8, 0, Math.PI * 2);
+  ctx.arc(eyeSpacing - scale, eyeY + scale, pupilSize, 0, Math.PI * 2);
   ctx.fill();
   
-  ctx.fillStyle = "#000000";
-  ctx.beginPath();
-  ctx.arc(-12, -10, 4, 0, Math.PI * 2);
-  ctx.arc(12, -10, 4, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // Menacing tail
+  // Angry eyebrows
   ctx.strokeStyle = "#8B0000";
-  ctx.lineWidth = 8;
+  ctx.lineWidth = 3 * scale;
+  ctx.lineCap = 'round';
   ctx.beginPath();
-  ctx.moveTo(0, 50);
-  for (let i = 0; i < 5; i++) {
-    const waveX = Math.sin(i * 0.5 + Date.now() / 150) * 20;
-    ctx.lineTo(waveX, 50 + i * 30);
-  }
+  ctx.moveTo(-eyeSpacing - 6 * scale, eyeY - 8 * scale);
+  ctx.lineTo(-eyeSpacing + 6 * scale, eyeY - 4 * scale);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(eyeSpacing - 6 * scale, eyeY - 4 * scale);
+  ctx.lineTo(eyeSpacing + 6 * scale, eyeY - 8 * scale);
   ctx.stroke();
   
-  // Label
+  // Angry frown
+  ctx.strokeStyle = "#8B0000";
+  ctx.lineWidth = 3 * scale;
+  ctx.beginPath();
+  ctx.arc(0, 2 * scale, 8 * scale, 1.2, Math.PI - 1.2, true);
+  ctx.stroke();
+  
+  // "BOSS!" label
   ctx.fillStyle = "#FF0000";
   ctx.strokeStyle = "#000000";
-  ctx.lineWidth = 2;
-  ctx.font = "bold 14px Arial";
+  ctx.lineWidth = 4;
+  ctx.font = "bold 20px Arial";
   ctx.textAlign = "center";
-  ctx.strokeText("BOSS!", 0, -70);
-  ctx.fillText("BOSS!", 0, -70);
+  ctx.strokeText("BOSS!", 0, -90 * scale);
+  ctx.fillText("BOSS!", 0, -90 * scale);
   
   ctx.restore();
 }
