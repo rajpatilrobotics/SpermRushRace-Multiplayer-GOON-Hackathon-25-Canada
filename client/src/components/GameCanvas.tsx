@@ -675,12 +675,12 @@ function drawPowerUp(ctx: CanvasRenderingContext2D, powerUp: PowerUp, x: number,
   
   // Enhanced glow with pulsing effect
   const pulse = Math.sin(Date.now() / 300) * 0.2 + 0.8;
-  const glowGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, 40 * pulse);
+  const glowGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, 50 * pulse);
   glowGradient.addColorStop(0, "#FFE66DAA");
   glowGradient.addColorStop(0.5, "#FFE66D44");
   glowGradient.addColorStop(1, "#FFE66D00");
   ctx.fillStyle = glowGradient;
-  ctx.fillRect(-40, -40, 80, 80);
+  ctx.fillRect(-50, -50, 100, 100);
   
   const imageMap = {
     lube: '/images/lube.png',
@@ -698,7 +698,7 @@ function drawPowerUp(ctx: CanvasRenderingContext2D, powerUp: PowerUp, x: number,
   const img = IMAGE_CACHE[imageSrc];
   
   if (img) {
-    const size = 70;
+    const size = 100;
     ctx.drawImage(img, -size / 2, -size / 2, size, size);
   }
   
@@ -707,8 +707,8 @@ function drawPowerUp(ctx: CanvasRenderingContext2D, powerUp: PowerUp, x: number,
   ctx.lineWidth = 3;
   ctx.font = "bold 11px 'Comic Sans MS', cursive";
   ctx.textAlign = "center";
-  ctx.strokeText(labelMap[powerUp.type], 0, 35);
-  ctx.fillText(labelMap[powerUp.type], 0, 35);
+  ctx.strokeText(labelMap[powerUp.type], 0, 58);
+  ctx.fillText(labelMap[powerUp.type], 0, 58);
   
   ctx.restore();
 }
@@ -735,7 +735,7 @@ function drawObstacle(ctx: CanvasRenderingContext2D, obstacle: Obstacle, x: numb
   const img = IMAGE_CACHE[imageSrc];
   
   if (img) {
-    const size = 70;
+    const size = 100;
     ctx.drawImage(img, -size / 2, -size / 2, size, size);
   }
   
@@ -751,8 +751,8 @@ function drawObstacle(ctx: CanvasRenderingContext2D, obstacle: Obstacle, x: numb
   ctx.lineWidth = 3;
   ctx.font = "bold 10px 'Comic Sans MS', cursive";
   ctx.textAlign = "center";
-  ctx.strokeText(labelMap[obstacle.type], 0, 35);
-  ctx.fillText(labelMap[obstacle.type], 0, 35);
+  ctx.strokeText(labelMap[obstacle.type], 0, 58);
+  ctx.fillText(labelMap[obstacle.type], 0, 58);
   
   ctx.restore();
 }
