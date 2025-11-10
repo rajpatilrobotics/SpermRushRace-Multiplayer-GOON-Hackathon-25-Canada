@@ -395,7 +395,6 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 - **Tailwind CSS** - Styling made easy
 - **Radix UI** - Accessible components
 - **shadcn/ui** - Beautiful component system
-- **Replit** - Development and deployment platform
 
 ---
 
