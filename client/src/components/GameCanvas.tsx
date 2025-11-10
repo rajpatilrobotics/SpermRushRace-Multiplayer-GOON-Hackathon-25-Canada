@@ -44,10 +44,14 @@ export function GameCanvas() {
     obstacles,
     mysteryEggs,
     particles,
+    hazards,
+    bossSperm,
     trackHeight,
     cameraY,
     droppedCondoms,
     screenShake,
+    slowMotion,
+    currentRandomEvent,
     updateRacer,
     updateCamera,
     updateTimers,
@@ -56,6 +60,11 @@ export function GameCanvas() {
     dropCondom,
     finishRace,
     updateSmartObstacles,
+    updateHazards,
+    updateBossSperm,
+    checkRandomEvent,
+    spawnTrailParticles,
+    updateParticles,
   } = useRace();
   
   const {
@@ -288,6 +297,25 @@ export function GameCanvas() {
         
         // Update smart obstacles
         state.updateSmartObstacles();
+        
+        // Update hazards (turbulence, acid pools, boost pads, etc.)
+        state.updateHazards(delta);
+        
+        // Update boss sperm
+        state.updateBossSperm();
+        
+        // Check for random events every 10 seconds
+        state.checkRandomEvent();
+        
+        // Spawn trail particles for all racers
+        racers.forEach((racer) => {
+          if (racer.y > 0) {
+            state.spawnTrailParticles(racer);
+          }
+        });
+        
+        // Update particles
+        state.updateParticles(delta);
       }
       
       // Sync camera back to store (after all updates, for all phases)
@@ -427,6 +455,22 @@ export function GameCanvas() {
         const screenY = canvas.height - (particle.y - currentCameraY);
         drawParticle(ctx, particle, particle.x, screenY);
       });
+      
+      // Render hazards
+      state.hazards.forEach((hazard) => {
+        const screenY = canvas.height - (hazard.y - currentCameraY);
+        if (screenY > -200 && screenY < canvas.height + 200) {
+          drawHazard(ctx, hazard, hazard.x, screenY);
+        }
+      });
+      
+      // Render boss sperm
+      if (state.bossSperm && state.bossSperm.active) {
+        const screenY = canvas.height - (state.bossSperm.y - currentCameraY);
+        if (screenY > -200 && screenY < canvas.height + 200) {
+          drawBossSperm(ctx, state.bossSperm, state.bossSperm.x, screenY);
+        }
+      }
       
       // Render racers
       if (isMultiplayer) {
@@ -812,29 +856,111 @@ function drawObstacle(ctx: CanvasRenderingContext2D, obstacle: Obstacle, x: numb
   const imageSrc = imageMap[obstacle.type];
   const img = IMAGE_CACHE[imageSrc];
   
-  // Condom inflation animation when chasing
   let scale = 1.0;
-  if (obstacle.type === 'condom' && obstacle.isChasing) {
-    // Pulsing inflation effect - grows from 100% to 150%
-    const inflationPulse = Math.sin(Date.now() / 400) * 0.25 + 1.25;
-    scale = inflationPulse;
-    
-    // Add particle puff effects around inflating condom
-    ctx.save();
-    ctx.globalAlpha = 0.4;
-    ctx.fillStyle = "#FFFFFF";
-    for (let i = 0; i < 6; i++) {
-      const angle = (i / 6) * Math.PI * 2 + Date.now() / 500;
-      const radius = 60 * scale;
-      const px = Math.cos(angle) * radius;
-      const py = Math.sin(angle) * radius;
-      const puffSize = 8 + Math.sin(Date.now() / 300 + i) * 4;
+  let rotation = 0;
+  let shake = { x: 0, y: 0 };
+  
+  if (obstacle.isChasing) {
+    if (obstacle.type === 'condom') {
+      // Pulsing inflation effect - grows from 100% to 150%
+      const inflationPulse = Math.sin(Date.now() / 400) * 0.25 + 1.25;
+      scale = inflationPulse;
+      
+      // Add particle puff effects around inflating condom
+      ctx.save();
+      ctx.globalAlpha = 0.4;
+      ctx.fillStyle = "#FFFFFF";
+      for (let i = 0; i < 6; i++) {
+        const angle = (i / 6) * Math.PI * 2 + Date.now() / 500;
+        const radius = 60 * scale;
+        const px = Math.cos(angle) * radius;
+        const py = Math.sin(angle) * radius;
+        const puffSize = 8 + Math.sin(Date.now() / 300 + i) * 4;
+        ctx.beginPath();
+        ctx.arc(px, py, puffSize, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1.0;
+      ctx.restore();
+    } else if (obstacle.type === 'pill') {
+      // Pill shake/rattle effect
+      shake.x = Math.sin(Date.now() / 50) * 8;
+      shake.y = Math.cos(Date.now() / 70) * 6;
+      scale = 1.0 + Math.sin(Date.now() / 200) * 0.2;
+      
+      // Add shaking particle trail
+      ctx.save();
+      ctx.globalAlpha = 0.3;
+      ctx.fillStyle = "#FF69B4";
+      for (let i = 0; i < 8; i++) {
+        const angle = (i / 8) * Math.PI * 2 + Date.now() / 300;
+        const radius = 50;
+        const px = Math.cos(angle) * radius + shake.x;
+        const py = Math.sin(angle) * radius + shake.y;
+        const size = 6 + Math.sin(Date.now() / 200 + i) * 3;
+        ctx.beginPath();
+        ctx.arc(px, py, size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1.0;
+      ctx.restore();
+    } else if (obstacle.type === 'std') {
+      // STD menacing glow and pulse
+      scale = 1.0 + Math.sin(Date.now() / 300) * 0.35;
+      
+      // Menacing red glow
+      ctx.save();
+      const glowGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, 80 * scale);
+      glowGradient.addColorStop(0, "#FF0000AA");
+      glowGradient.addColorStop(0.5, "#FF000066");
+      glowGradient.addColorStop(1, "#FF000000");
+      ctx.fillStyle = glowGradient;
       ctx.beginPath();
-      ctx.arc(px, py, puffSize, 0, Math.PI * 2);
+      ctx.arc(0, 0, 80 * scale, 0, Math.PI * 2);
       ctx.fill();
+      
+      // Add pulsing danger rings
+      ctx.globalAlpha = 0.5;
+      ctx.strokeStyle = "#FF0000";
+      ctx.lineWidth = 3;
+      for (let i = 0; i < 3; i++) {
+        const ringPulse = (Date.now() / 400 + i * 0.33) % 1;
+        const radius = 40 + ringPulse * 40;
+        ctx.globalAlpha = 0.5 - ringPulse * 0.5;
+        ctx.beginPath();
+        ctx.arc(0, 0, radius * scale, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1.0;
+      ctx.restore();
+    } else if (obstacle.type === 'antibody') {
+      // Antibody spin and expand effect
+      rotation = (Date.now() / 500) % (Math.PI * 2);
+      scale = 1.0 + Math.sin(Date.now() / 250) * 0.3;
+      
+      // Add spinning particles
+      ctx.save();
+      ctx.globalAlpha = 0.5;
+      ctx.fillStyle = "#00FF00";
+      for (let i = 0; i < 12; i++) {
+        const angle = (i / 12) * Math.PI * 2 + rotation * 2;
+        const radius = 55 * scale;
+        const px = Math.cos(angle) * radius;
+        const py = Math.sin(angle) * radius;
+        const particleSize = 5 + Math.sin(Date.now() / 200 + i) * 2;
+        ctx.beginPath();
+        ctx.arc(px, py, particleSize, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1.0;
+      ctx.restore();
     }
-    ctx.globalAlpha = 1.0;
-    ctx.restore();
+  }
+  
+  // Apply shake and rotation
+  ctx.translate(shake.x, shake.y);
+  if (rotation !== 0) {
+    ctx.rotate(rotation);
   }
   
   if (img) {
@@ -855,14 +981,21 @@ function drawObstacle(ctx: CanvasRenderingContext2D, obstacle: Obstacle, x: numb
     ctx.textAlign = "center";
     ctx.fillText("⚠️", 0, -60 * scale);
     
-    // Danger text for condoms
-    if (obstacle.type === 'condom') {
+    // Unique danger text for each type
+    const dangerTextMap = {
+      condom: 'INFLATING!',
+      pill: 'RATTLING!',
+      std: 'INFECTIOUS!',
+      antibody: 'SPINNING!',
+    };
+    
+    if (dangerTextMap[obstacle.type]) {
       ctx.fillStyle = "#FFFF00";
       ctx.strokeStyle = "#FF0000";
       ctx.lineWidth = 2;
       ctx.font = "bold 12px Arial";
-      ctx.strokeText("INFLATING!", 0, -80 * scale);
-      ctx.fillText("INFLATING!", 0, -80 * scale);
+      ctx.strokeText(dangerTextMap[obstacle.type], 0, -80 * scale);
+      ctx.fillText(dangerTextMap[obstacle.type], 0, -80 * scale);
     }
     
     ctx.globalAlpha = 1.0;
@@ -937,5 +1070,187 @@ function drawParticle(ctx: CanvasRenderingContext2D, particle: Particle, x: numb
   ctx.fill();
   
   ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+function drawHazard(ctx: CanvasRenderingContext2D, hazard: any, x: number, y: number) {
+  ctx.save();
+  ctx.translate(x, y);
+  
+  if (hazard.kind === 'turbulence') {
+    // Swirling turbulence zone
+    const pulse = Math.sin(Date.now() / 300) * 0.2 + 0.8;
+    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, hazard.radius * pulse);
+    gradient.addColorStop(0, "#00FFFF44");
+    gradient.addColorStop(0.5, "#00FFFF22");
+    gradient.addColorStop(1, "#00FFFF00");
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(0, 0, hazard.radius * pulse, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Swirling lines
+    ctx.strokeStyle = "#00FFFF";
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 3; i++) {
+      const rotation = (Date.now() / 500 + i * Math.PI / 3) % (Math.PI * 2);
+      ctx.beginPath();
+      ctx.arc(0, 0, hazard.radius * 0.7, rotation, rotation + Math.PI / 2);
+      ctx.stroke();
+    }
+  } else if (hazard.kind === 'acid') {
+    // Bubbling acid pool
+    const pulse = Math.sin(Date.now() / 400) * 0.15 + 0.85;
+    ctx.fillStyle = "#00FF0044";
+    ctx.beginPath();
+    ctx.arc(0, 0, hazard.radius * pulse, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Bubbles
+    ctx.fillStyle = "#00FF0066";
+    for (let i = 0; i < 5; i++) {
+      const bubbleTime = (Date.now() / 600 + i) % 1;
+      const bubbleSize = bubbleTime * 15;
+      const angle = (i / 5) * Math.PI * 2;
+      const bubbleX = Math.cos(angle) * hazard.radius * 0.5;
+      const bubbleY = Math.sin(angle) * hazard.radius * 0.5;
+      ctx.globalAlpha = 1 - bubbleTime;
+      ctx.beginPath();
+      ctx.arc(bubbleX, bubbleY, bubbleSize, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+  } else if (hazard.kind === 'boost') {
+    // Speed boost pad
+    const pulse = Math.sin(Date.now() / 200) * 0.3 + 0.7;
+    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, hazard.radius);
+    gradient.addColorStop(0, "#FFD700FF");
+    gradient.addColorStop(0.6, "#FFD70066");
+    gradient.addColorStop(1, "#FFD70000");
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(0, 0, hazard.radius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Arrows
+    ctx.fillStyle = "#FFD700";
+    ctx.globalAlpha = pulse;
+    for (let i = 0; i < 3; i++) {
+      const yOffset = i * 20 - 20 + (Date.now() / 100 % 40);
+      ctx.beginPath();
+      ctx.moveTo(0, yOffset - 10);
+      ctx.lineTo(-15, yOffset);
+      ctx.lineTo(0, yOffset + 10);
+      ctx.lineTo(15, yOffset);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  } else if (hazard.kind === 'spinner') {
+    // Rotating obstacle
+    ctx.save();
+    ctx.rotate(hazard.rotation || 0);
+    ctx.strokeStyle = "#FF00FF";
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.moveTo(-hazard.radius, 0);
+    ctx.lineTo(hazard.radius, 0);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, -hazard.radius);
+    ctx.lineTo(0, hazard.radius);
+    ctx.stroke();
+    ctx.restore();
+    
+    // Center
+    ctx.fillStyle = "#FF00FF";
+    ctx.beginPath();
+    ctx.arc(0, 0, 15, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (hazard.kind === 'whitebloodcell') {
+    // White blood cell patrol
+    const pulse = Math.sin(Date.now() / 400) * 0.2 + 1.0;
+    ctx.fillStyle = "#FFFFFF";
+    ctx.globalAlpha = 0.8;
+    ctx.beginPath();
+    ctx.arc(0, 0, hazard.radius * pulse, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Nucleus
+    ctx.fillStyle = "#CCCCFF";
+    ctx.beginPath();
+    ctx.arc(0, 0, hazard.radius * 0.4, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Warning
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "#FF0000";
+    ctx.font = "bold 16px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("⚠️", 0, -hazard.radius - 10);
+  }
+  
+  ctx.restore();
+}
+
+function drawBossSperm(ctx: CanvasRenderingContext2D, boss: any, x: number, y: number) {
+  ctx.save();
+  ctx.translate(x, y);
+  
+  // Giant menacing sperm
+  const pulse = Math.sin(Date.now() / 300) * 0.2 + 1.2;
+  
+  // Menacing glow
+  const glowGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, 100 * pulse);
+  glowGradient.addColorStop(0, "#FF000088");
+  glowGradient.addColorStop(0.5, "#FF000044");
+  glowGradient.addColorStop(1, "#FF000000");
+  ctx.fillStyle = glowGradient;
+  ctx.beginPath();
+  ctx.arc(0, 0, 100 * pulse, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Head (larger than normal)
+  ctx.fillStyle = "#8B0000";
+  ctx.strokeStyle = "#FF0000";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 35 * pulse, 50 * pulse, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  
+  // Angry eyes
+  ctx.fillStyle = "#FFFF00";
+  ctx.beginPath();
+  ctx.arc(-12, -10, 8, 0, Math.PI * 2);
+  ctx.arc(12, -10, 8, 0, Math.PI * 2);
+  ctx.fill();
+  
+  ctx.fillStyle = "#000000";
+  ctx.beginPath();
+  ctx.arc(-12, -10, 4, 0, Math.PI * 2);
+  ctx.arc(12, -10, 4, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Menacing tail
+  ctx.strokeStyle = "#8B0000";
+  ctx.lineWidth = 8;
+  ctx.beginPath();
+  ctx.moveTo(0, 50);
+  for (let i = 0; i < 5; i++) {
+    const waveX = Math.sin(i * 0.5 + Date.now() / 150) * 20;
+    ctx.lineTo(waveX, 50 + i * 30);
+  }
+  ctx.stroke();
+  
+  // Label
+  ctx.fillStyle = "#FF0000";
+  ctx.strokeStyle = "#000000";
+  ctx.lineWidth = 2;
+  ctx.font = "bold 14px Arial";
+  ctx.textAlign = "center";
+  ctx.strokeText("BOSS!", 0, -70);
+  ctx.fillText("BOSS!", 0, -70);
+  
   ctx.restore();
 }

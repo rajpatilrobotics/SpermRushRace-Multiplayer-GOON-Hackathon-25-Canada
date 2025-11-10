@@ -43,7 +43,34 @@ export interface Particle {
   maxLife: number;
   color: string;
   size: number;
+  type?: 'trail' | 'explosion' | 'splash';
 }
+
+export type HazardKind = 'turbulence' | 'acid' | 'boost' | 'spinner' | 'whitebloodcell';
+
+export interface Hazard {
+  id: string;
+  kind: HazardKind;
+  x: number;
+  y: number;
+  radius: number;
+  strength: number;
+  rotation?: number;
+  patrolVelocityX?: number;
+  patrolVelocityY?: number;
+}
+
+export interface BossSperm {
+  id: string;
+  x: number;
+  y: number;
+  velocityX: number;
+  velocityY: number;
+  active: boolean;
+  targetId: string | null;
+}
+
+export type ComboEffect = 'turbo' | 'shield' | 'mega';
 
 export interface Racer {
   id: string;
@@ -60,6 +87,9 @@ export interface Racer {
   slipstreamTimer: number;
   activePowerUpType: string | null;
   powerUpTimer: number;
+  comboEffect: ComboEffect | null;
+  comboTimer: number;
+  collectedPowerUps: string[];
 }
 
 export interface ActiveEffect {
@@ -77,6 +107,8 @@ interface RaceState {
   obstacles: Obstacle[];
   mysteryEggs: MysteryEgg[];
   particles: Particle[];
+  hazards: Hazard[];
+  bossSperm: BossSperm | null;
   trackHeight: number;
   cameraY: number;
   activeEffects: ActiveEffect[];
@@ -86,6 +118,9 @@ interface RaceState {
   droppedCondoms: Obstacle[];
   screenShake: number;
   lastEventMessage: string;
+  slowMotion: number;
+  lastRandomEvent: number;
+  currentRandomEvent: string | null;
   
   // Actions
   startRace: () => void;
@@ -102,10 +137,16 @@ interface RaceState {
   checkCollisions: () => void;
   dropCondom: () => void;
   checkSlipstreams: () => void;
-  addParticles: (x: number, y: number, color: string, count: number) => void;
+  addParticles: (x: number, y: number, color: string, count: number, type?: 'trail' | 'explosion' | 'splash') => void;
   updateParticles: (delta: number) => void;
   updateSmartObstacles: () => void;
   setEventMessage: (message: string) => void;
+  triggerScreenShake: (intensity: number) => void;
+  updateHazards: (delta: number) => void;
+  updateBossSperm: () => void;
+  checkRandomEvent: () => void;
+  checkCombos: (racerId: string) => void;
+  spawnTrailParticles: (racer: Racer) => void;
 }
 
 const TRACK_HEIGHT = 40 * window.innerHeight;
@@ -179,6 +220,49 @@ const generateMysteryEggs = (): MysteryEgg[] => {
   return eggs;
 };
 
+// Generate hazards along the track
+const generateHazards = (): Hazard[] => {
+  const hazards: Hazard[] = [];
+  const kinds: HazardKind[] = ['turbulence', 'acid', 'boost', 'spinner', 'whitebloodcell'];
+  
+  for (let i = 2000; i < TRACK_HEIGHT; i += 1000) {
+    const kind = kinds[Math.floor(Math.random() * kinds.length)];
+    
+    const hazard: Hazard = {
+      id: `hazard-${i}`,
+      kind,
+      x: Math.random() * (CANVAS_WIDTH - 300) + 150,
+      y: i,
+      radius: kind === 'turbulence' || kind === 'acid' ? 120 : 80,
+      strength: kind === 'turbulence' ? 5 : kind === 'boost' ? 8 : 3,
+    };
+    
+    if (kind === 'spinner') {
+      hazard.rotation = 0;
+    }
+    if (kind === 'whitebloodcell') {
+      hazard.patrolVelocityX = 2;
+    }
+    
+    hazards.push(hazard);
+  }
+  
+  return hazards;
+};
+
+// Create boss sperm
+const createBossSperm = (): BossSperm => {
+  return {
+    id: 'boss-sperm',
+    x: CANVAS_WIDTH / 2,
+    y: TRACK_HEIGHT * 0.7, // Spawn at 70% of track
+    velocityX: 0,
+    velocityY: 0,
+    active: true,
+    targetId: null,
+  };
+};
+
 export const useRace = create<RaceState>((set, get) => ({
   phase: "ready",
   racers: [
@@ -197,6 +281,9 @@ export const useRace = create<RaceState>((set, get) => ({
       slipstreamTimer: 0,
       activePowerUpType: null,
       powerUpTimer: 0,
+      comboEffect: null,
+      comboTimer: 0,
+      collectedPowerUps: [],
     },
     {
       id: "speedy",
@@ -213,6 +300,9 @@ export const useRace = create<RaceState>((set, get) => ({
       slipstreamTimer: 0,
       activePowerUpType: null,
       powerUpTimer: 0,
+      comboEffect: null,
+      comboTimer: 0,
+      collectedPowerUps: [],
     },
     {
       id: "turbo",
@@ -229,12 +319,17 @@ export const useRace = create<RaceState>((set, get) => ({
       slipstreamTimer: 0,
       activePowerUpType: null,
       powerUpTimer: 0,
+      comboEffect: null,
+      comboTimer: 0,
+      collectedPowerUps: [],
     },
   ],
   powerUps: generatePowerUps(),
   obstacles: generateObstacles(),
   mysteryEggs: generateMysteryEggs(),
   particles: [],
+  hazards: generateHazards(),
+  bossSperm: createBossSperm(),
   trackHeight: TRACK_HEIGHT,
   cameraY: 0,
   activeEffects: [],
@@ -244,6 +339,9 @@ export const useRace = create<RaceState>((set, get) => ({
   droppedCondoms: [],
   screenShake: 0,
   lastEventMessage: "",
+  slowMotion: 1.0,
+  lastRandomEvent: 0,
+  currentRandomEvent: null,
   
   startRace: () => set({ phase: "racing" }),
   
@@ -266,6 +364,9 @@ export const useRace = create<RaceState>((set, get) => ({
           slipstreamTimer: 0,
           activePowerUpType: null,
           powerUpTimer: 0,
+          comboEffect: null,
+          comboTimer: 0,
+          collectedPowerUps: [],
         },
         {
           id: "speedy",
@@ -282,6 +383,9 @@ export const useRace = create<RaceState>((set, get) => ({
           slipstreamTimer: 0,
           activePowerUpType: null,
           powerUpTimer: 0,
+          comboEffect: null,
+          comboTimer: 0,
+          collectedPowerUps: [],
         },
         {
           id: "turbo",
@@ -298,12 +402,17 @@ export const useRace = create<RaceState>((set, get) => ({
           slipstreamTimer: 0,
           activePowerUpType: null,
           powerUpTimer: 0,
+          comboEffect: null,
+          comboTimer: 0,
+          collectedPowerUps: [],
         },
       ],
       powerUps: generatePowerUps(),
       obstacles: generateObstacles(),
       mysteryEggs: generateMysteryEggs(),
       particles: [],
+      hazards: generateHazards(),
+      bossSperm: createBossSperm(),
       cameraY: 0,
       activeEffects: [],
       lastCommentaryTime: 0,
@@ -312,6 +421,9 @@ export const useRace = create<RaceState>((set, get) => ({
       droppedCondoms: [],
       screenShake: 0,
       lastEventMessage: "",
+      slowMotion: 1.0,
+      lastRandomEvent: 0,
+      currentRandomEvent: null,
     });
   },
   
@@ -360,12 +472,19 @@ export const useRace = create<RaceState>((set, get) => ({
         break;
     }
     
+    // Track collected power-ups for combos
+    const collectedPowerUps = [...racer.collectedPowerUps, powerUp.type];
+    
     get().updateRacer(racerId, { 
       speedMultiplier: multiplier,
       activePowerUpType: powerUp.type,
       powerUpTimer: 3000,
+      collectedPowerUps,
     });
     get().addActiveEffect({ type: powerUp.type, message, duration: 3000, timer: 3000 });
+    
+    // Check for combos
+    get().checkCombos(racerId);
   },
   
   hitObstacle: (racerId, obstacleId) => {
@@ -808,7 +927,7 @@ export const useRace = create<RaceState>((set, get) => ({
     });
   },
   
-  addParticles: (x, y, color, count) => {
+  addParticles: (x, y, color, count, type = 'explosion') => {
     const newParticles: Particle[] = [];
     
     for (let i = 0; i < count; i++) {
@@ -825,6 +944,7 @@ export const useRace = create<RaceState>((set, get) => ({
         maxLife: 1000,
         color,
         size: Math.random() * 4 + 2,
+        type,
       });
     }
     
@@ -891,5 +1011,217 @@ export const useRace = create<RaceState>((set, get) => ({
   
   setEventMessage: (message) => {
     set({ lastEventMessage: message });
+  },
+  
+  triggerScreenShake: (intensity) => {
+    set({ screenShake: intensity });
+  },
+  
+  updateHazards: (delta) => {
+    set((state) => {
+      const updatedHazards = state.hazards.map((hazard) => {
+        if (hazard.kind === 'spinner' && hazard.rotation !== undefined) {
+          return { ...hazard, rotation: (hazard.rotation + delta * 0.05) % (Math.PI * 2) };
+        }
+        if (hazard.kind === 'whitebloodcell') {
+          // White blood cells patrol back and forth
+          let newX = hazard.x + (hazard.patrolVelocityX || 2);
+          if (newX < 100 || newX > CANVAS_WIDTH - 100) {
+            hazard.patrolVelocityX = -(hazard.patrolVelocityX || 2);
+            newX = hazard.x + hazard.patrolVelocityX;
+          }
+          return { ...hazard, x: newX, patrolVelocityX: hazard.patrolVelocityX };
+        }
+        return hazard;
+      });
+      
+      return { hazards: updatedHazards };
+    });
+    
+    // Check hazard collisions
+    const state = get();
+    state.racers.forEach((racer) => {
+      state.hazards.forEach((hazard) => {
+        const dx = racer.x - hazard.x;
+        const dy = racer.y - hazard.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance < hazard.radius) {
+          if (hazard.kind === 'turbulence') {
+            // Push player in random direction
+            const angle = Math.random() * Math.PI * 2;
+            const force = hazard.strength;
+            get().updateRacer(racer.id, {
+              velocityX: racer.velocityX + Math.cos(angle) * force,
+              velocityY: racer.velocityY + Math.sin(angle) * force,
+            });
+          } else if (hazard.kind === 'acid') {
+            // Slow player down
+            get().updateRacer(racer.id, {
+              speedMultiplier: Math.max(0.3, racer.speedMultiplier * 0.9),
+            });
+          } else if (hazard.kind === 'boost') {
+            // Speed boost
+            get().updateRacer(racer.id, {
+              velocityY: racer.velocityY - hazard.strength,
+            });
+            get().addParticles(racer.x, racer.y, '#FFD700', 15, 'explosion');
+          }
+        }
+      });
+    });
+  },
+  
+  updateBossSperm: () => {
+    const state = get();
+    if (!state.bossSperm || !state.bossSperm.active) return;
+    
+    // Find the current leader
+    const sortedRacers = [...state.racers].sort((a, b) => b.y - a.y);
+    const leader = sortedRacers[0];
+    
+    if (!leader) return;
+    
+    const boss = state.bossSperm;
+    const dx = leader.x - boss.x;
+    const dy = leader.y - boss.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    if (distance > 0) {
+      const dirX = dx / distance;
+      const dirY = dy / distance;
+      const speed = 3;
+      
+      set({
+        bossSperm: {
+          ...boss,
+          x: boss.x + dirX * speed,
+          y: boss.y + dirY * speed,
+          velocityX: dirX * speed,
+          velocityY: dirY * speed,
+          targetId: leader.id,
+        },
+      });
+    }
+  },
+  
+  checkRandomEvent: () => {
+    const state = get();
+    const now = Date.now();
+    
+    if (state.phase !== 'racing') return;
+    if (now - state.lastRandomEvent < 10000) return;
+    
+    const events = ['gravity_flip', 'speed_boost', 'fog', 'screen_rotate'];
+    const event = events[Math.floor(Math.random() * events.length)];
+    
+    let message = '';
+    if (event === 'gravity_flip') {
+      message = '🌀 GRAVITY FLIP!';
+      state.racers.forEach((racer) => {
+        get().updateRacer(racer.id, {
+          velocityX: -racer.velocityX * 0.8,
+        });
+      });
+    } else if (event === 'speed_boost') {
+      message = '⚡ EVERYONE GETS SPEED BOOST!';
+      state.racers.forEach((racer) => {
+        get().updateRacer(racer.id, {
+          speedMultiplier: racer.speedMultiplier * 1.5,
+        });
+      });
+    } else if (event === 'fog') {
+      message = '🌫️ FOG OF WAR!';
+    } else if (event === 'screen_rotate') {
+      message = '🔄 SCREEN SHAKE!';
+      get().triggerScreenShake(15);
+    }
+    
+    set({
+      lastRandomEvent: now,
+      currentRandomEvent: event,
+      lastEventMessage: message,
+    });
+    
+    // Clear event after 3 seconds
+    setTimeout(() => {
+      if (get().currentRandomEvent === event) {
+        set({ currentRandomEvent: null });
+      }
+    }, 3000);
+  },
+  
+  checkCombos: (racerId) => {
+    const state = get();
+    const racer = state.racers.find((r) => r.id === racerId);
+    if (!racer) return;
+    
+    const powerUps = racer.collectedPowerUps;
+    
+    // Check for Turbo Combo: Viagra + Lube
+    if (powerUps.includes('viagra') && powerUps.includes('lube')) {
+      get().updateRacer(racerId, {
+        comboEffect: 'turbo',
+        comboTimer: 5000,
+        speedMultiplier: racer.speedMultiplier * 2,
+        collectedPowerUps: [],
+      });
+      get().setEventMessage('🚀 TURBO MODE ACTIVATED!');
+      get().addParticles(racer.x, racer.y, '#FF00FF', 30, 'explosion');
+    }
+    // Check for Mega Combo: All three power-ups
+    else if (powerUps.includes('viagra') && powerUps.includes('lube') && powerUps.includes('mutation')) {
+      get().updateRacer(racerId, {
+        comboEffect: 'mega',
+        comboTimer: 8000,
+        speedMultiplier: racer.speedMultiplier * 3,
+        collectedPowerUps: [],
+      });
+      get().setEventMessage('💥 MEGA COMBO! UNSTOPPABLE!');
+      get().addParticles(racer.x, racer.y, '#FFD700', 50, 'explosion');
+    }
+  },
+  
+  spawnTrailParticles: (racer) => {
+    if (!racer || racer.y < 0) return;
+    
+    // Throttle: only spawn if player has active power-up or combo
+    if (!racer.activePowerUpType && !racer.comboEffect) return;
+    
+    const state = get();
+    // Limit total particles to prevent performance issues
+    if (state.particles.length > 500) return;
+    
+    // Color-code based on active power-up or combo
+    let color = racer.color;
+    if (racer.comboEffect === 'turbo') {
+      color = '#FF00FF'; // Purple for turbo
+    } else if (racer.comboEffect === 'mega') {
+      color = '#FFD700'; // Gold for mega
+    } else if (racer.activePowerUpType === 'lube') {
+      color = '#00FFFF'; // Cyan for lube
+    } else if (racer.activePowerUpType === 'viagra') {
+      color = '#FF0000'; // Red for viagra
+    } else if (racer.activePowerUpType === 'mutation') {
+      color = '#00FF00'; // Green for mutation
+    }
+    
+    // Spawn only 1 particle per frame instead of 2
+    const particle: Particle = {
+      id: `trail-${racer.id}-${Date.now()}-${Math.random()}`,
+      x: racer.x + (Math.random() - 0.5) * 20,
+      y: racer.y + (Math.random() - 0.5) * 20,
+      velocityX: (Math.random() - 0.5) * 2,
+      velocityY: Math.random() * 1 + 0.5,
+      life: 500,
+      maxLife: 500,
+      color,
+      size: Math.random() * 3 + 2,
+      type: 'trail',
+    };
+    
+    set((state) => ({
+      particles: [...state.particles, particle],
+    }));
   },
 }));
