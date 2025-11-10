@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRace } from "@/lib/stores/useRace";
 import { useMultiplayer } from "@/lib/stores/useMultiplayer";
+import { useAudio } from "@/lib/stores/useAudio";
 import type { Racer, PowerUp, Obstacle, MysteryEgg, Particle } from "@/lib/stores/useRace";
 
 const IMAGE_CACHE: Record<string, HTMLImageElement> = {};
@@ -75,6 +76,14 @@ export function GameCanvas() {
     playerFinished,
   } = useMultiplayer();
   
+  const {
+    setBackgroundMusic,
+    setHitSound,
+    setSuccessSound,
+    playBackgroundMusic,
+    stopBackgroundMusic,
+  } = useAudio();
+  
   const keysRef = useRef<Keys>({
     w: false,
     a: false,
@@ -111,6 +120,26 @@ export function GameCanvas() {
       setImagesLoaded(true);
     });
   }, []);
+  
+  useEffect(() => {
+    const backgroundMusic = new Audio('/sounds/blinding-lights.mp3');
+    const hitSound = new Audio('/sounds/hit.mp3');
+    const successSound = new Audio('/sounds/success.mp3');
+    
+    setBackgroundMusic(backgroundMusic);
+    setHitSound(hitSound);
+    setSuccessSound(successSound);
+    
+    console.log('Audio files loaded');
+  }, [setBackgroundMusic, setHitSound, setSuccessSound]);
+  
+  useEffect(() => {
+    if (phase === 'racing') {
+      playBackgroundMusic();
+    } else if (phase === 'finished') {
+      stopBackgroundMusic();
+    }
+  }, [phase, playBackgroundMusic, stopBackgroundMusic]);
   
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

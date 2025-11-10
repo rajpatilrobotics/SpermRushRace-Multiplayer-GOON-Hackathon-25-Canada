@@ -5,6 +5,7 @@ interface AudioState {
   hitSound: HTMLAudioElement | null;
   successSound: HTMLAudioElement | null;
   isMuted: boolean;
+  shouldPlayMusic: boolean;
   
   // Setter functions
   setBackgroundMusic: (music: HTMLAudioElement) => void;
@@ -15,6 +16,8 @@ interface AudioState {
   toggleMute: () => void;
   playHit: () => void;
   playSuccess: () => void;
+  playBackgroundMusic: () => void;
+  stopBackgroundMusic: () => void;
 }
 
 export const useAudio = create<AudioState>((set, get) => ({
@@ -22,17 +25,32 @@ export const useAudio = create<AudioState>((set, get) => ({
   hitSound: null,
   successSound: null,
   isMuted: true, // Start muted by default
+  shouldPlayMusic: false,
   
   setBackgroundMusic: (music) => set({ backgroundMusic: music }),
   setHitSound: (sound) => set({ hitSound: sound }),
   setSuccessSound: (sound) => set({ successSound: sound }),
   
   toggleMute: () => {
-    const { isMuted } = get();
+    const { isMuted, backgroundMusic, shouldPlayMusic } = get();
     const newMutedState = !isMuted;
     
-    // Just update the muted state
+    // Update the muted state
     set({ isMuted: newMutedState });
+    
+    // Pause or resume background music based on mute state
+    if (backgroundMusic) {
+      if (newMutedState) {
+        backgroundMusic.pause();
+      } else {
+        // Only resume if the game wants music playing (race is active)
+        if (shouldPlayMusic) {
+          backgroundMusic.play().catch(error => {
+            console.log("Background music play prevented:", error);
+          });
+        }
+      }
+    }
     
     // Log the change
     console.log(`Sound ${newMutedState ? 'muted' : 'unmuted'}`);
@@ -69,6 +87,43 @@ export const useAudio = create<AudioState>((set, get) => ({
       successSound.play().catch(error => {
         console.log("Success sound play prevented:", error);
       });
+    }
+  },
+  
+  playBackgroundMusic: () => {
+    const { backgroundMusic, isMuted } = get();
+    
+    // Mark that music should be playing
+    set({ shouldPlayMusic: true });
+    
+    if (backgroundMusic) {
+      backgroundMusic.loop = true;
+      backgroundMusic.volume = 0.3;
+      backgroundMusic.currentTime = 0;
+      
+      // If sound is muted, don't play but keep shouldPlayMusic flag set
+      if (isMuted) {
+        console.log("Background music skipped (muted)");
+        return;
+      }
+      
+      backgroundMusic.play().catch(error => {
+        console.log("Background music play prevented:", error);
+      });
+      console.log("Background music started");
+    }
+  },
+  
+  stopBackgroundMusic: () => {
+    const { backgroundMusic } = get();
+    
+    // Mark that music should not be playing
+    set({ shouldPlayMusic: false });
+    
+    if (backgroundMusic) {
+      backgroundMusic.pause();
+      backgroundMusic.currentTime = 0;
+      console.log("Background music stopped");
     }
   }
 }));
