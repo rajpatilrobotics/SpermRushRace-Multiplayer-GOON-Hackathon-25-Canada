@@ -6,6 +6,20 @@ Gene Pool Royale is a humorous multiplayer racing game where players control spe
 
 ## Recent Changes
 
+**November 10, 2025 - Sperm-to-Sperm Collision System**
+- Implemented comprehensive collision detection system where racers collide with each other during the race
+- Added physics-based bounce mechanics with velocity-dependent impulse and 0.5 restitution coefficient
+- Power-up stealing: faster racer can steal active power-up from slower racer on collision
+- High-speed collision dizzy mechanic: collisions above 5 units/s apply 1-second dizzy effect to slower racer
+- Visual effects: white spark ring, gold particle bursts, and dizzy stars (💫) bobbing above affected racers
+- Audio feedback: collision hit sound plays via existing audio system
+- Camera shake intensity scales with collision speed for enhanced impact feel
+- Collision commentary: random phrases like "Direct hit!" and "Ouch! That's gotta hurt!" via voice system
+- Top-left notifications: shows power-up steal messages like "⚡ Turbo stole Speedy's Viagra Boost!"
+- 500ms collision cooldown prevents rapid repeated collisions between same racers
+- Full support for both single-player (AI collisions) and multiplayer modes
+- Collision notifications auto-fade after 2 seconds with proper timer management
+
 **November 9, 2025 - Sperm Visual & Camera Improvements**
 - Fixed sperm orientation: tails now trail downward behind characters as they swim upward
 - Redesigned head shape: changed from simple ellipse to realistic teardrop/tadpole shape with pointed front
