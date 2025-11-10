@@ -160,8 +160,6 @@ export function RaceCommentary() {
         commentary = getRandomItem(POWER_UP_COMMENTARY.lube);
       } else if (lastEventMessage.includes("Viagra")) {
         commentary = getRandomItem(POWER_UP_COMMENTARY.viagra);
-      } else if (lastEventMessage.includes("Mutation")) {
-        commentary = getRandomItem(POWER_UP_COMMENTARY.mutation);
       } else if (lastEventMessage.includes("Condom")) {
         commentary = getRandomItem(OBSTACLE_COMMENTARY.condom);
       } else if (lastEventMessage.includes("Birth Control") || lastEventMessage.includes("pill")) {
@@ -171,7 +169,7 @@ export function RaceCommentary() {
       } else if (lastEventMessage.includes("Antibody")) {
         commentary = getRandomItem(OBSTACLE_COMMENTARY.antibody);
       } else if (lastEventMessage.includes("mystery") || lastEventMessage.includes("egg")) {
-        if (lastEventMessage.includes("powerup") || lastEventMessage.includes("boost") || lastEventMessage.includes("Mutation") || lastEventMessage.includes("Viagra") || lastEventMessage.includes("Lube")) {
+        if (lastEventMessage.includes("powerup") || lastEventMessage.includes("boost") || lastEventMessage.includes("Viagra") || lastEventMessage.includes("Lube")) {
           commentary = getRandomItem(MYSTERY_EGG_GOOD);
         } else {
           commentary = getRandomItem(MYSTERY_EGG_BAD);

@@ -4,7 +4,7 @@ export type RacePhase = "ready" | "racing" | "finished";
 
 export interface PowerUp {
   id: string;
-  type: "lube" | "mutation" | "viagra";
+  type: "lube" | "viagra";
   x: number;
   y: number;
   active: boolean;
@@ -46,7 +46,7 @@ export interface Particle {
   type?: 'trail' | 'explosion' | 'splash';
 }
 
-export type HazardKind = 'turbulence' | 'boost';
+export type HazardKind = never;
 
 export interface Hazard {
   id: string;
@@ -155,7 +155,7 @@ const CANVAS_WIDTH = window.innerWidth;
 // Generate power-ups along the track
 const generatePowerUps = (): PowerUp[] => {
   const powerUps: PowerUp[] = [];
-  const types: PowerUp["type"][] = ["lube", "mutation", "viagra"];
+  const types: PowerUp["type"][] = ["lube", "viagra"];
   
   for (let i = 500; i < TRACK_HEIGHT; i += 400) {
     const type = types[Math.floor(Math.random() * types.length)];
@@ -198,7 +198,7 @@ const generateObstacles = (): Obstacle[] => {
 // Generate mystery eggs along the track
 const generateMysteryEggs = (): MysteryEgg[] => {
   const eggs: MysteryEgg[] = [];
-  const powerUpTypes = ["lube", "mutation", "viagra"];
+  const powerUpTypes = ["lube", "viagra"];
   const obstacleTypes = ["condom", "pill", "antibody", "std"];
   
   for (let i = 1200; i < TRACK_HEIGHT; i += 800) {
@@ -223,22 +223,8 @@ const generateMysteryEggs = (): MysteryEgg[] => {
 // Generate hazards along the track
 const generateHazards = (): Hazard[] => {
   const hazards: Hazard[] = [];
-  const kinds: HazardKind[] = ['turbulence', 'boost'];
   
-  for (let i = 2000; i < TRACK_HEIGHT; i += 1200) {
-    const kind = kinds[Math.floor(Math.random() * kinds.length)];
-    
-    const hazard: Hazard = {
-      id: `hazard-${i}`,
-      kind,
-      x: Math.random() * (CANVAS_WIDTH - 300) + 150,
-      y: i,
-      radius: kind === 'turbulence' ? 120 : 80,
-      strength: kind === 'turbulence' ? 5 : 8,
-    };
-    
-    hazards.push(hazard);
-  }
+  // No hazards generated - turbulence and boost removed
   
   return hazards;
 };
@@ -454,10 +440,6 @@ export const useRace = create<RaceState>((set, get) => ({
       case "lube":
         multiplier = 1.5;
         message = `💧 ${playerName} got Lube Boost!`;
-        break;
-      case "mutation":
-        multiplier = 1.3;
-        message = `🧬 ${playerName} got Mutation!`;
         break;
       case "viagra":
         multiplier = 1.7;

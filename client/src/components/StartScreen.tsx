@@ -51,7 +51,7 @@ export function StartScreen() {
           
           <div className="text-left space-y-1 text-sm mb-4">
             <p className="font-bold">Power-Ups:</p>
-            <p>💧 Lube Boost | 🧬 Mutation | 💊 Viagra</p>
+            <p>💧 Lube Boost | 💊 Viagra</p>
             <p className="font-bold mt-2">Obstacles:</p>
             <p>🚫 Condoms | 💊 Pills | 🦠 Antibodies | 🦠 STDs</p>
           </div>

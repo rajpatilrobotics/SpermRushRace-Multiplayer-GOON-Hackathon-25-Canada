@@ -95,7 +95,6 @@ export function GameCanvas() {
     const images = [
       '/images/lube.png',
       '/images/viagra.png',
-      '/images/mutation.png',
       '/images/std.png',
       '/images/birth-control.png',
       '/images/condom.png',
