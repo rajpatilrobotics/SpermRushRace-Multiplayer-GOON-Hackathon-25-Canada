@@ -1,14 +1,28 @@
 import { useState, useEffect } from "react";
 import { useMultiplayer } from "@/lib/stores/useMultiplayer";
 import { useRace } from "@/lib/stores/useRace";
+import { useLeaderboard } from "@/lib/stores/useLeaderboard";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Card } from "./ui/card";
+import { toast } from "sonner";
 
 export function LobbyScreen() {
   const [mode, setMode] = useState<"menu" | "create" | "join" | "lobby">("menu");
   const [nickname, setNickname] = useState("");
   const [roomCodeInput, setRoomCodeInput] = useState("");
+  const [linkCopied, setLinkCopied] = useState(false);
+  const { initPlayer } = useLeaderboard();
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const joinCode = urlParams.get('join');
+    if (joinCode) {
+      setRoomCodeInput(joinCode.toUpperCase());
+      setMode("join");
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
   
   const {
     roomCode,
@@ -40,13 +54,36 @@ export function LobbyScreen() {
 
   const handleCreateRoom = () => {
     if (nickname.trim()) {
+      initPlayer(nickname.trim());
       createRoom(nickname.trim());
     }
   };
 
   const handleJoinRoom = () => {
     if (nickname.trim() && roomCodeInput.trim()) {
+      initPlayer(nickname.trim());
       joinRoom(roomCodeInput.trim(), nickname.trim());
+    }
+  };
+
+  const copyRoomLink = async () => {
+    if (!roomCode) return;
+    const link = `${window.location.origin}?join=${roomCode}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      setLinkCopied(true);
+      toast.success("Link copied! Share it with friends!");
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch (err) {
+      const textArea = document.createElement('textarea');
+      textArea.value = link;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setLinkCopied(true);
+      toast.success("Link copied!");
+      setTimeout(() => setLinkCopied(false), 2000);
     }
   };
 
@@ -233,6 +270,26 @@ export function LobbyScreen() {
                   {roomCode}
                 </span>
               </div>
+              
+              <Button
+                onClick={copyRoomLink}
+                variant="outline"
+                className={`mt-3 w-full transition-all ${
+                  linkCopied 
+                    ? 'bg-green-100 border-green-400 text-green-700' 
+                    : 'bg-gradient-to-r from-pink-50 to-purple-50 hover:from-pink-100 hover:to-purple-100'
+                }`}
+              >
+                {linkCopied ? (
+                  <>✅ Link Copied!</>
+                ) : (
+                  <>📋 Copy Invite Link</>
+                )}
+              </Button>
+              
+              <p className="text-xs text-gray-500 mt-2">
+                Share this link with friends to join instantly!
+              </p>
             </div>
 
             <div className="space-y-3">

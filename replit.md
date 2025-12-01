@@ -6,6 +6,16 @@ Gene Pool Royale is a hilarious multiplayer racing game where players control sp
 **Current Status:** Fully functional and running on port 5000
 
 ## Recent Changes
+- **December 1, 2025**: Viral Features Update
+  - Added shareable room links for multiplayer (copy invite button with URL params)
+  - Implemented global leaderboard with localStorage (top players, fastest times, personal stats)
+  - Enhanced announcer with 100+ hilarious voice lines for race events
+  - Added mobile touch controls (virtual joystick + boost button)
+  - Created mystery box rewards system with popup animations
+  - Polished UI with biological theme (pink gradients, floating bubbles, card layout)
+  - Fixed stat tracking: power-ups collected, obstacles hit, mystery eggs opened
+  - Integrated mobile controls with game loop for proper physics handling
+  
 - **December 1, 2025**: Initial setup completed
   - Installed Node.js 20 and all npm dependencies
   - Configured development workflow on port 5000
@@ -33,10 +43,12 @@ Gene Pool Royale is a hilarious multiplayer racing game where players control sp
 
 ### State Management
 - **Zustand stores** in `client/src/lib/stores/`:
-  - `useRace.tsx` - Race logic, physics, collisions
+  - `useRace.tsx` - Race logic, physics, collisions, player stats tracking
   - `useMultiplayer.tsx` - Room management, player sync
   - `useAudio.tsx` - Background music and sound effects
   - `useGame.tsx` - Game phase state machine
+  - `useLeaderboard.tsx` - Global leaderboard with localStorage persistence
+  - `useMysteryRewards.tsx` - Mystery box rewards system
 
 ### Shared Code
 - `shared/schema.ts` - Database schema (Drizzle ORM)
@@ -64,6 +76,11 @@ The app runs on **http://localhost:5000** (already configured)
 6. **Physics** - Smooth swimming mechanics with 20-segment animated tails
 7. **Audio** - Background music and sound effects
 8. **Visual Effects** - Particles, screen shake, confetti
+9. **Shareable Room Links** - Copy invite URL to share with friends
+10. **Global Leaderboard** - Track top players, fastest times, personal stats
+11. **Hilarious Announcer** - 100+ voice lines for race commentary
+12. **Mobile Controls** - Virtual joystick + boost button for touch devices
+13. **Mystery Eggs** - Collect for random power-up or obstacle surprises
 
 ## Technical Stack
 - **React 18** with TypeScript

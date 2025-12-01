@@ -133,6 +133,8 @@ interface RaceState {
   slowMotion: number;
   lastRandomEvent: number;
   currentRandomEvent: string | null;
+  raceStartTime: number | null;
+  playerStats: { powerUpsCollected: number; obstaclesHit: number; mysteryEggsOpened: number };
   
   // Actions
   startRace: () => void;
@@ -345,8 +347,10 @@ export const useRace = create<RaceState>((set, get) => ({
   slowMotion: 1.0,
   lastRandomEvent: 0,
   currentRandomEvent: null,
+  raceStartTime: null,
+  playerStats: { powerUpsCollected: 0, obstaclesHit: 0, mysteryEggsOpened: 0 },
   
-  startRace: () => set({ phase: "racing" }),
+  startRace: () => set({ phase: "racing", raceStartTime: Date.now(), playerStats: { powerUpsCollected: 0, obstaclesHit: 0, mysteryEggsOpened: 0 } }),
   
   resetRace: () => {
     set({
@@ -437,6 +441,8 @@ export const useRace = create<RaceState>((set, get) => ({
       slowMotion: 1.0,
       lastRandomEvent: 0,
       currentRandomEvent: null,
+      raceStartTime: null,
+      playerStats: { powerUpsCollected: 0, obstaclesHit: 0, mysteryEggsOpened: 0 },
     });
   },
   
@@ -492,6 +498,13 @@ export const useRace = create<RaceState>((set, get) => ({
     });
     get().addActiveEffect({ type: powerUp.type, message, duration: 3000, timer: 3000 });
     
+    // Track player stats
+    if (racer.isPlayer) {
+      set(state => ({
+        playerStats: { ...state.playerStats, powerUpsCollected: state.playerStats.powerUpsCollected + 1 }
+      }));
+    }
+    
     // Check for combos
     get().checkCombos(racerId);
   },
@@ -536,6 +549,13 @@ export const useRace = create<RaceState>((set, get) => ({
     
     get().updateRacer(racerId, { speedMultiplier: 0.5, slowdownTimer: slowdownDuration });
     get().addActiveEffect({ type: obstacle.type, message, duration: slowdownDuration, timer: slowdownDuration });
+    
+    // Track player stats
+    if (racer.isPlayer) {
+      set(state => ({
+        playerStats: { ...state.playerStats, obstaclesHit: state.playerStats.obstaclesHit + 1 }
+      }));
+    }
   },
   
   collectMysteryEgg: (racerId, eggId) => {
@@ -629,6 +649,14 @@ export const useRace = create<RaceState>((set, get) => ({
       
       // Set event message for commentary
       get().setEventMessage(message);
+      
+      // Track player stats for mystery eggs
+      const currentRacer = currentState.racers.find((r) => r.id === racerId);
+      if (currentRacer?.isPlayer) {
+        set(state => ({
+          playerStats: { ...state.playerStats, mysteryEggsOpened: state.playerStats.mysteryEggsOpened + 1 }
+        }));
+      }
       
       // Deactivate egg after animation and effects
       set({

@@ -223,10 +223,18 @@ export function GameCanvas() {
           let newVelX = 0;
           let newVelY = minForwardVelocity; // Always moving forward by default
           
-          if (keys.w || keys.ArrowUp) newVelY = speed;
-          if (keys.s || keys.ArrowDown) newVelY = -speed * 0.3; // Allow slight backward movement
-          if (keys.a || keys.ArrowLeft) newVelX = -speed * 0.7;
-          if (keys.d || keys.ArrowRight) newVelX = speed * 0.7;
+          // Check for mobile input first
+          const mobileInput = (window as any).__mobileInput as { x: number; y: number } | undefined;
+          if (mobileInput && (mobileInput.x !== 0 || mobileInput.y !== 0)) {
+            newVelX = mobileInput.x * speed * 0.7;
+            newVelY = mobileInput.y > 0 ? speed : (mobileInput.y < -0.5 ? -speed * 0.3 : minForwardVelocity);
+          } else {
+            // Keyboard input
+            if (keys.w || keys.ArrowUp) newVelY = speed;
+            if (keys.s || keys.ArrowDown) newVelY = -speed * 0.3; // Allow slight backward movement
+            if (keys.a || keys.ArrowLeft) newVelX = -speed * 0.7;
+            if (keys.d || keys.ArrowRight) newVelX = speed * 0.7;
+          }
           
           const newX = Math.max(50, Math.min(canvas.width - 50, player.x + newVelX));
           const newY = player.y + newVelY;
